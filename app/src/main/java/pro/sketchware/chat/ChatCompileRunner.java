@@ -16,6 +16,7 @@ import a.a.a.wq;
 import a.a.a.yq;
 import a.a.a.zy;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
+import mod.hey.studios.compiler.flutter.FlutterCompilerBridge;
 import mod.hey.studios.project.proguard.ProguardHandler;
 import mod.hey.studios.project.stringfog.StringfogHandler;
 import mod.hey.studios.util.ProjectMapUtils;
@@ -112,6 +113,7 @@ final class ChatCompileRunner implements BuildProgressReceiver {
             onProgress("Generating view binding...", 11);
             builder.generateViewBinding();
             KotlinCompilerBridge.compileKotlinCodeIfPossible(this, builder);
+            FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
             onProgress("Java is compiling...", 13);
             builder.compileJavaCode();
             new StringfogHandler(scId).start(this, builder);

@@ -118,6 +118,7 @@ import mod.agus.jcoderz.editor.manage.resource.ManageResourceActivity;
 import mod.hey.studios.activity.managers.assets.ManageAssetsActivity;
 import mod.hey.studios.activity.managers.java.ManageJavaActivity;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
+import mod.hey.studios.compiler.flutter.FlutterCompilerBridge;
 import mod.hey.studios.project.custom_blocks.CustomBlocksDialog;
 import mod.hey.studios.project.proguard.ManageProguardActivity;
 import mod.hey.studios.project.proguard.ProguardHandler;
@@ -1718,6 +1719,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 }
 
                 KotlinCompilerBridge.compileKotlinCodeIfPossible(this, builder);
+                if (canceled) return;
+                FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
                 if (canceled) {
                     return;
                 }

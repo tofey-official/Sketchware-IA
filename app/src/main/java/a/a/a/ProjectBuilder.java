@@ -61,6 +61,7 @@ import mod.agus.jcoderz.editor.library.ExtLibSelected;
 import mod.agus.jcoderz.editor.manage.library.locallibrary.ManageLocalLibrary;
 import mod.hey.studios.build.BuildSettings;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
+import mod.hey.studios.compiler.flutter.FlutterCompilerBridge;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.project.proguard.ProguardHandler;
 import mod.hey.studios.util.SystemLogPrinter;
@@ -903,6 +904,7 @@ public class ProjectBuilder {
         }
 
         KotlinCompilerBridge.maybeAddKotlinBuiltInLibraryDependenciesIfPossible(this, builtInLibraryManager);
+        FlutterCompilerBridge.maybeAddFlutterBuiltInLibraryDependenciesIfPossible(this, builtInLibraryManager);
 
         ExtLibSelected.addUsedDependencies(yq.N.x, builtInLibraryManager);
     }

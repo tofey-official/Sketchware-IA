@@ -17,7 +17,8 @@ out/
 
 # Gradle files
 .gradle/
-build/
+/build/
+app/build/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -68,4 +69,7 @@ fastlane/readme.md
 release/
 *.zip
 *.7z
-flutter*/
+/flutter*/
+!app/src/main/assets/libs/*.zip
+telegram_*
+telegram_media/

@@ -79,6 +79,7 @@ import io.github.rosemoe.sora.widget.CodeEditor;
 import io.github.rosemoe.sora.widget.EditorSearcher;
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
+import mod.hey.studios.compiler.flutter.FlutterCompilerBridge;
 import mod.jbk.build.compiler.manifest.ManifestNamespaces;
 import mod.hey.studios.build.BuildSettings;
 import mod.jbk.build.BuiltInLibraries;
@@ -2582,6 +2583,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         builder.generateViewBinding();
 
         KotlinCompilerBridge.compileKotlinCodeIfPossible(receiver, builder);
+        FlutterCompilerBridge.compileFlutterCodeIfPossible(receiver, builder);
 
         receiver.onProgress("Java is compiling...", 13);
         builder.compileJavaCode();

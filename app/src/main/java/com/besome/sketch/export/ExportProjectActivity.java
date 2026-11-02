@@ -46,6 +46,7 @@ import a.a.a.yq;
 import kellinwood.security.zipsigner.ZipSigner;
 import kellinwood.security.zipsigner.optional.LoadKeystoreException;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
+import mod.hey.studios.compiler.flutter.FlutterCompilerBridge;
 import mod.hey.studios.project.AndroidStudioProjectSettingsDialog;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.project.proguard.ProguardHandler;
@@ -755,6 +756,11 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                 }
 
                 KotlinCompilerBridge.compileKotlinCodeIfPossible(this, builder);
+                if (canceled) {
+                    cancel(true);
+                    return;
+                }
+                FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
                 if (canceled) {
                     cancel(true);
                     return;
