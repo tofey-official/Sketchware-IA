@@ -1,0 +1,56 @@
+{
+  "name": "YAML",
+  "scopeName": "source.yaml",
+  "fileTypes": ["yaml", "yml"],
+  "patterns": [
+    {
+      "name": "comment.line.number-sign.yaml",
+      "match": "#.*$"
+    },
+    {
+      "name": "constant.language.boolean.yaml",
+      "match": "\\b(true|false|yes|no|on|off)\\b"
+    },
+    {
+      "name": "constant.numeric.yaml",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    },
+    {
+      "name": "string.quoted.double.yaml",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.yaml",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "string.quoted.single.yaml",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.yaml",
+          "match": "''"
+        }
+      ]
+    },
+    {
+      "match": "^\\s*([\\w\\.\\-_]+)(\\s*)(:)",
+      "captures": {
+        "1": {
+          "name": "entity.name.tag.yaml"
+        },
+        "3": {
+          "name": "punctuation.separator.key-value.yaml"
+        }
+      }
+    },
+    {
+      "name": "keyword.control.directive.yaml",
+      "match": "^%[A-Z]+.*$"
+    }
+  ]
+}

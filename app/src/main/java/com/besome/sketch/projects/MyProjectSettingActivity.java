@@ -670,6 +670,11 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             updateProjectLanguageCard();
             dialog.dismiss();
         });
+        dialogView.findViewById(R.id.lang_option_flutter).setOnClickListener(v -> {
+            projectLanguage = StudioLanguage.FLUTTER.getId();
+            updateProjectLanguageCard();
+            dialog.dismiss();
+        });
         dialog.show();
     }
 

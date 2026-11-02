@@ -637,7 +637,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         binding.studioSymbolContainer.removeAllViews();
         String[] symbols = {
                 "TAB", "◀", "▶", "{ }", "( )", "[ ]",
-                "\"", "'", ";", "=", ".", ",", ":", "->",
+                "\"", "'", ";", "=", ".", ",", ":", "->", "=>",
                 "//", "!", "?", "@", "&", "|", "<", ">",
                 "+", "-", "*", "/", "_", "%", "$", "#"
         };
@@ -2008,6 +2008,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 applyTextMateLanguageSafely(file, CodeEditorLanguages.SCOPE_NAME_KOTLIN, "Kotlin");
             } else if (name.endsWith(".xml")) {
                 applyXmlLanguageSafely(file);
+            } else if (name.endsWith(".dart")) {
+                applyTextMateLanguageSafely(file, CodeEditorLanguages.SCOPE_NAME_DART, "Dart");
+            } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+                applyTextMateLanguageSafely(file, CodeEditorLanguages.SCOPE_NAME_YAML, "YAML");
             } else {
                 editor.setEditorLanguage(new EmptyLanguage());
             }
@@ -2100,6 +2104,12 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
         if (name.endsWith(".gradle")) {
             return "gradle";
+        }
+        if (name.endsWith(".dart")) {
+            return "dart";
+        }
+        if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+            return "yaml";
         }
         return "text";
     }
@@ -3401,11 +3411,49 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
         }
 
+        if (lowerName.endsWith(".dart")) {
+            String className = toPascalCase(name.substring(0, name.length() - 5));
+            if (relPath.contains("/lib/")) {
+                return "import 'package:flutter/material.dart';\n\n"
+                        + "class " + className + " extends StatelessWidget {\n"
+                        + "  const " + className + "({super.key});\n\n"
+                        + "  @override\n"
+                        + "  Widget build(BuildContext context) {\n"
+                        + "    return Container();\n"
+                        + "  }\n"
+                        + "}\n";
+            }
+            return "class " + className + " {\n"
+                    + "  // Class implementation\n"
+                    + "}\n";
+        }
+
+        if (lowerName.endsWith(".yaml") || lowerName.endsWith(".yml")) {
+            return "# Configuration\n";
+        }
+
         if (lowerName.endsWith(".json")) {
             return "{\n\n}\n";
         }
 
         return "";
+    }
+
+    private String toPascalCase(String name) {
+        if (name == null || name.isEmpty()) return "MyClass";
+        StringBuilder sb = new StringBuilder();
+        boolean capitalizeNext = true;
+        for (char c : name.toCharArray()) {
+            if (c == '_' || c == '-' || c == '.') {
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                sb.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.length() == 0 ? "MyClass" : sb.toString();
     }
 
     private String detectPackageName(File file) {
@@ -3630,6 +3678,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return name.endsWith(".java")
                 || name.endsWith(".kt")
                 || name.endsWith(".kts")
+                || name.endsWith(".dart")
                 || name.endsWith(".xml")
                 || name.endsWith(".gradle")
                 || name.endsWith(".html")
@@ -3748,6 +3797,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             if (name.equals("main")) return R.drawable.ic_folder_source;
             if (name.equals("java")) return R.drawable.ic_folder_java;
             if (name.equals("kotlin")) return R.drawable.ic_folder_kotlin;
+            if (name.equals("lib")) return R.drawable.ic_folder_source;
             if (name.equals("res")) return R.drawable.ic_folder_res;
             if (name.equals("layout")) return R.drawable.ic_folder_layout;
             if (name.startsWith("drawable")) return R.drawable.ic_folder_image;
@@ -3764,6 +3814,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         if (name.equals("androidmanifest.xml")) return R.drawable.ic_file_manifest;
         if (name.endsWith(".kt") || name.endsWith(".kts")) return R.drawable.ic_file_kotlin;
         if (name.endsWith(".java")) return R.drawable.ic_file_java;
+        if (name.endsWith(".dart")) return R.drawable.ic_file_dart;
+        if (name.endsWith(".yaml") || name.endsWith(".yml")) return R.drawable.ic_file_yaml;
         if (name.endsWith(".gradle")) return R.drawable.ic_file_gradle;
         if (name.endsWith(".properties")) return R.drawable.ic_file_properties;
         if (name.endsWith(".json")) return R.drawable.ic_file_json;
@@ -3804,7 +3856,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             }
 
             if (name.equals("java") || name.equals("kotlin") || name.equals("src")
-                    || name.equals("main") || name.equals("app")) {
+                    || name.equals("main") || name.equals("app") || name.equals("lib")) {
                 return getResources().getColor(R.color.studio_folder_code, getTheme());
             }
 
@@ -3821,6 +3873,14 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
         if (name.endsWith(".java")) {
             return getResources().getColor(R.color.studio_file_java, getTheme());
+        }
+
+        if (name.endsWith(".dart")) {
+            return getResources().getColor(R.color.studio_file_kotlin, getTheme());
+        }
+
+        if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+            return getResources().getColor(R.color.studio_file_config, getTheme());
         }
 
         if (name.endsWith(".xml")) {

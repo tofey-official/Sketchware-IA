@@ -41,6 +41,16 @@ public enum StudioLanguage {
             "MainActivity.java / AppUtils.kt",
             true,
             true
+    ),
+    FLUTTER(
+            "flutter",
+            "Flutter (Dart)",
+            "Cross-platform app development with Flutter & Dart",
+            R.drawable.ic_mtrl_flutter,
+            "lib/main.dart",
+            false,
+            false,
+            true
     );
 
     private final String id;
@@ -51,9 +61,15 @@ public enum StudioLanguage {
     private final String mainFileName;
     private final boolean supportsJava;
     private final boolean supportsKotlin;
+    private final boolean isFlutter;
 
     StudioLanguage(String id, String displayName, String description, @DrawableRes int iconRes,
                    String mainFileName, boolean supportsJava, boolean supportsKotlin) {
+        this(id, displayName, description, iconRes, mainFileName, supportsJava, supportsKotlin, false);
+    }
+
+    StudioLanguage(String id, String displayName, String description, @DrawableRes int iconRes,
+                   String mainFileName, boolean supportsJava, boolean supportsKotlin, boolean isFlutter) {
         this.id = id;
         this.displayName = displayName;
         this.description = description;
@@ -61,6 +77,7 @@ public enum StudioLanguage {
         this.mainFileName = mainFileName;
         this.supportsJava = supportsJava;
         this.supportsKotlin = supportsKotlin;
+        this.isFlutter = isFlutter;
     }
 
     public String getId() {
@@ -90,6 +107,10 @@ public enum StudioLanguage {
 
     public boolean supportsKotlin() {
         return supportsKotlin;
+    }
+
+    public boolean isFlutter() {
+        return isFlutter;
     }
 
     @NonNull

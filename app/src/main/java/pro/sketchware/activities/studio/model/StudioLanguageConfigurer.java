@@ -63,6 +63,10 @@ public final class StudioLanguageConfigurer {
                     configureGradleForKotlin(appBuildFile, rootBuildFile);
                     break;
 
+                case FLUTTER:
+                    configureFlutterProject(projectRoot, appName, packageName);
+                    break;
+
                 case JAVA:
                 default:
                     // Java default: ensure Java MainActivity exists
@@ -181,5 +185,120 @@ public final class StudioLanguageConfigurer {
                 + "        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()\n"
                 + "    }\n"
                 + "}\n";
+    }
+
+    private static void configureFlutterProject(File projectRoot, String appName, String packageName) {
+        String cleanAppName = (appName == null || appName.trim().isEmpty()) ? "my_flutter_app" : appName.trim().toLowerCase().replaceAll("[^a-z0-9_]", "_");
+        if (cleanAppName.isEmpty() || Character.isDigit(cleanAppName.charAt(0))) {
+            cleanAppName = "app_" + cleanAppName;
+        }
+
+        File libDir = new File(projectRoot, "lib");
+        if (!libDir.exists()) {
+            libDir.mkdirs();
+        }
+
+        File mainDart = new File(libDir, "main.dart");
+        FileUtil.writeFile(mainDart.getAbsolutePath(), buildFlutterMainDart(appName == null ? "Flutter App" : appName));
+
+        File pubspecFile = new File(projectRoot, "pubspec.yaml");
+        FileUtil.writeFile(pubspecFile.getAbsolutePath(), buildPubspecYaml(cleanAppName));
+
+        File analysisFile = new File(projectRoot, "analysis_options.yaml");
+        FileUtil.writeFile(analysisFile.getAbsolutePath(), buildAnalysisOptionsYaml());
+
+        File readmeFile = new File(projectRoot, "README.md");
+        if (!readmeFile.exists()) {
+            FileUtil.writeFile(readmeFile.getAbsolutePath(), "# " + cleanAppName + "\n\nA new Flutter project created with Sumer Studio.\n");
+        }
+    }
+
+    private static String buildFlutterMainDart(String appTitle) {
+        return "import 'package:flutter/material.dart';\n\n"
+                + "void main() {\n"
+                + "  runApp(const MyApp());\n"
+                + "}\n\n"
+                + "class MyApp extends StatelessWidget {\n"
+                + "  const MyApp({super.key});\n\n"
+                + "  @override\n"
+                + "  Widget build(BuildContext context) {\n"
+                + "    return MaterialApp(\n"
+                + "      title: '" + appTitle.replace("'", "\\'") + "',\n"
+                + "      debugShowCheckedModeBanner: false,\n"
+                + "      theme: ThemeData(\n"
+                + "        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),\n"
+                + "        useMaterial3: true,\n"
+                + "      ),\n"
+                + "      home: const MyHomePage(title: '" + appTitle.replace("'", "\\'") + "'),\n"
+                + "    );\n"
+                + "  }\n"
+                + "}\n\n"
+                + "class MyHomePage extends StatefulWidget {\n"
+                + "  const MyHomePage({super.key, required this.title});\n\n"
+                + "  final String title;\n\n"
+                + "  @override\n"
+                + "  State<MyHomePage> createState() => _MyHomePageState();\n"
+                + "}\n\n"
+                + "class _MyHomePageState extends State<MyHomePage> {\n"
+                + "  int _counter = 0;\n\n"
+                + "  void _incrementCounter() {\n"
+                + "    setState(() {\n"
+                + "      _counter++;\n"
+                + "    });\n"
+                + "  }\n\n"
+                + "  @override\n"
+                + "  Widget build(BuildContext context) {\n"
+                + "    return Scaffold(\n"
+                + "      appBar: AppBar(\n"
+                + "        backgroundColor: Theme.of(context).colorScheme.inversePrimary,\n"
+                + "        title: Text(widget.title),\n"
+                + "      ),\n"
+                + "      body: Center(\n"
+                + "        child: Column(\n"
+                + "          mainAxisAlignment: MainAxisAlignment.center,\n"
+                + "          children: <Widget>[\n"
+                + "            const Text('You have pushed the button this many times:'),\n"
+                + "            Text(\n"
+                + "              '$_counter',\n"
+                + "              style: Theme.of(context).textTheme.headlineMedium,\n"
+                + "            ),\n"
+                + "          ],\n"
+                + "        ),\n"
+                + "      ),\n"
+                + "      floatingActionButton: FloatingActionButton(\n"
+                + "        onPressed: _incrementCounter,\n"
+                + "        tooltip: 'Increment',\n"
+                + "        child: const Icon(Icons.add),\n"
+                + "      ),\n"
+                + "    );\n"
+                + "  }\n"
+                + "}\n";
+    }
+
+    private static String buildPubspecYaml(String cleanAppName) {
+        return "name: " + cleanAppName + "\n"
+                + "description: \"A new Flutter project created with Sumer Studio.\"\n"
+                + "publish_to: 'none'\n"
+                + "version: 1.0.0+1\n\n"
+                + "environment:\n"
+                + "  sdk: ^3.5.0\n\n"
+                + "dependencies:\n"
+                + "  flutter:\n"
+                + "    sdk: flutter\n"
+                + "  cupertino_icons: ^1.0.8\n\n"
+                + "dev_dependencies:\n"
+                + "  flutter_test:\n"
+                + "    sdk: flutter\n"
+                + "  flutter_lints: ^4.0.0\n\n"
+                + "flutter:\n"
+                + "  uses-material-design: true\n";
+    }
+
+    private static String buildAnalysisOptionsYaml() {
+        return "include: package:flutter_lints/flutter.yaml\n\n"
+                + "linter:\n"
+                + "  rules:\n"
+                + "    prefer_const_constructors: true\n"
+                + "    prefer_const_literals_to_create_immutables: true\n";
     }
 }

@@ -13,6 +13,8 @@ public class CodeEditorLanguages {
     public static final String SCOPE_NAME_JAVA = "source.java";
     public static final String SCOPE_NAME_KOTLIN = "source.kotlin";
     public static final String SCOPE_NAME_XML = "text.xml";
+    public static final String SCOPE_NAME_DART = "source.dart";
+    public static final String SCOPE_NAME_YAML = "source.yaml";
     private static final String TAG = "CodeEditorLanguages";
 
     static {

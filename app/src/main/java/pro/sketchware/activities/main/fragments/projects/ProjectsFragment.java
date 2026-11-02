@@ -264,6 +264,10 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
             dialog.dismiss();
             toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO, StudioLanguage.BOTH);
         });
+        dialogView.findViewById(R.id.lang_option_flutter).setOnClickListener(v -> {
+            dialog.dismiss();
+            toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO, StudioLanguage.FLUTTER);
+        });
         dialog.show();
     }
 
