@@ -46,6 +46,8 @@
     <string name="studio_action_new_file">New file</string>
     <string name="studio_action_rename">Rename</string>
     <string name="studio_action_delete">Delete</string>
+    <string name="studio_action_discard">Discard</string>
+    <string name="common_word_discard">Discard</string>
     <string name="studio_action_new_folder">New folder</string>
     <string name="studio_folder_created">Folder created</string>
     <string name="studio_close_tab">Close</string>
