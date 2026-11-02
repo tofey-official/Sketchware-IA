@@ -172,6 +172,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private SharedPreferences editorPrefs;
 
     private String scId;
+    private String projectName = "";
+    private String appName = "";
     private File projectRoot;
     private File currentFile;
     private File selectedNodeFile;
@@ -197,8 +199,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
         scId = getIntent().getStringExtra(EXTRA_SC_ID);
         HashMap<String, Object> project = scId == null ? null : lC.b(scId);
-        String projectName = valueOf(project, "my_ws_name", getString(R.string.studio_editor_title));
-        String appName = valueOf(project, "my_app_name", projectName);
+        projectName = valueOf(project, "my_ws_name", getString(R.string.studio_editor_title));
+        appName = valueOf(project, "my_app_name", projectName);
 
         editorPrefs = getSharedPreferences(EDITOR_PREFS, MODE_PRIVATE);
         readOnlyMode = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_ro", false);
@@ -2333,7 +2335,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             header.setOrientation(LinearLayout.HORIZONTAL);
             header.setGravity(Gravity.CENTER_VERTICAL);
             header.setPadding(dp(16), dp(12), dp(16), dp(12));
-            header.setBackgroundColor(getResources().getColor(R.color.studio_surface_container, getTheme()));
+            header.setBackgroundColor(getResources().getColor(R.color.studio_surface_alt, getTheme()));
 
             ImageView icon = new ImageView(this);
             icon.setImageResource(R.drawable.ic_mtrl_flutter);
@@ -2351,7 +2353,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
             TextView btnReload = new TextView(this);
             btnReload.setText(R.string.studio_flutter_hot_reload);
-            btnReload.setTextColor(getResources().getColor(R.color.colorPrimary, getTheme()));
+            btnReload.setTextColor(getResources().getColor(R.color.studio_accent, getTheme()));
             btnReload.setTypeface(Typeface.DEFAULT_BOLD);
             btnReload.setPadding(dp(12), dp(8), dp(12), dp(8));
             header.addView(btnReload);
