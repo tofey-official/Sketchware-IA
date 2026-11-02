@@ -99,6 +99,48 @@ jobs:
         run: |
           printf 'GOOGLE_SERVICES_JSON<<EOF\n%s\nEOF\n' "$JSON_CONTENT" >> $GITHUB_ENV
 
+      - name: Ensure google-services.json exists
+        shell: bash
+        run: |
+          if [ ! -f "app/google-services.json" ]; then
+            if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+              printf '%s\n' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            else
+              cat << 'EOF' > app/google-services.json
+          {
+            "project_info": {
+              "project_number": "123456789000",
+              "firebase_url": "https://mock-project-default-rtdb.firebaseio.com",
+              "project_id": "mock-project",
+              "storage_bucket": "mock-project.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789000:android:mockappid123456",
+                  "android_client_info": {
+                    "package_name": "pro.sketchware"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "mock_AIzaSyBQJCUXVKUjD38-u5pWkqMtesIfFvxAcvs"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+            fi
+          fi
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
@@ -196,7 +238,7 @@ jobs:
         shell: bash
         run: |
           release_tag="main-build-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.build.outputs.short_sha }}"
-          asset_name="Sketchware-IA-main-${{ needs.build.outputs.short_sha }}-run${{ github.run_number }}.apk"
+          asset_name="Sumer-Studio-main-${{ needs.build.outputs.short_sha }}-run${{ github.run_number }}.apk"
 
           echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
           echo "asset_name=${asset_name}" >> "$GITHUB_OUTPUT"
@@ -226,7 +268,7 @@ jobs:
           gh release create "${{ steps.release_meta.outputs.release_tag }}" \
             -R "${GITHUB_REPOSITORY}" \
             "./release-assets/${{ steps.release_meta.outputs.asset_name }}" \
-            --title "Development Build #${{ github.run_number }} (${{ needs.build.outputs.short_sha }})" \
+            --title "Sumer Studio Build #${{ github.run_number }} (${{ needs.build.outputs.short_sha }})" \
             --notes-file release-notes.md \
             --latest \
             --target "${GITHUB_SHA}"
