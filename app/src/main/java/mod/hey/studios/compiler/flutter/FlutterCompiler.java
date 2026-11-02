@@ -40,7 +40,7 @@ public class FlutterCompiler {
 
         receiver.onProgress("Flutter SDK: Bundling Flutter assets & native runtime...", 12);
         yq workspace = builder.yq;
-        File assetsDir = new File(workspace.assetsPath != null ? workspace.assetsPath : workspace.a);
+        File assetsDir = new File(workspace.assetsPath != null ? workspace.assetsPath : (workspace.projectMyscPath + File.separator + "app" + File.separator + "src" + File.separator + "main" + File.separator + "assets"));
         File flutterAssetsDir = new File(assetsDir, "flutter_assets");
         flutterAssetsDir.mkdirs();
 
@@ -60,7 +60,7 @@ public class FlutterCompiler {
         }
 
         try {
-            FlutterAppBundler.prepareFlutterAssets(projectRoot, workspace.appName != null ? workspace.appName : "Flutter App");
+            FlutterAppBundler.prepareFlutterAssets(projectRoot, workspace.applicationName != null ? workspace.applicationName : "Flutter App");
         } catch (Throwable ignored) {
         }
     }

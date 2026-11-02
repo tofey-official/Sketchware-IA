@@ -22,8 +22,8 @@ public class FlutterCompilerUtil {
                 return studioRoot;
             }
         }
-        if (workspace.c != null && !workspace.c.isEmpty()) {
-            return new File(workspace.c);
+        if (workspace.projectMyscPath != null && !workspace.projectMyscPath.isEmpty()) {
+            return new File(workspace.projectMyscPath);
         }
         return null;
     }
