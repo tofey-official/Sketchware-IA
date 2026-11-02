@@ -140,6 +140,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private static final int MENU_SMOOTH_MODE = 26;
     private static final int MENU_PREFERENCES = 27;
     private static final int MENU_GITHUB = 28;
+    private static final int MENU_FLUTTER_PREVIEW = 29;
     private static final int REQUEST_PICK_STUDIO_ICON = 23051;
     private static final int MAX_TREE_NODES = 900;
     private static final int MAX_INITIAL_SCAN_FILES = 1200;
@@ -267,6 +268,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         addToolbarAction(menu, MENU_THEME, R.string.studio_action_theme, R.drawable.ic_mtrl_palette);
         addToolbarAction(menu, MENU_BUILD, R.string.studio_action_build, R.drawable.ic_mtrl_run);
         addToolbarAction(menu, MENU_SAVE, R.string.studio_action_save, R.drawable.ic_mtrl_save);
+        addToolbarAction(menu, MENU_FLUTTER_PREVIEW, R.string.studio_flutter_option_live_run, R.drawable.ic_mtrl_flutter);
         addToolbarAction(menu, MENU_SEARCH, R.string.studio_action_search, R.drawable.ic_mtrl_search, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_SYNTAX, R.string.studio_action_syntax, R.drawable.ic_mtrl_code, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_PREVIOUS_POSITION, R.string.studio_action_previous_position, R.drawable.ic_mtrl_arrow_left, MenuItem.SHOW_AS_ACTION_NEVER);
@@ -286,6 +288,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             if (item.getItemId() == MENU_SAVE) {
                 logStudioAction("save");
                 saveCurrentFile(true);
+                return true;
+            }
+            if (item.getItemId() == MENU_FLUTTER_PREVIEW) {
+                logStudioAction("flutter_preview");
+                showFlutterLiveRunnerDialog();
                 return true;
             }
             if (item.getItemId() == MENU_BUILD) {
@@ -465,7 +472,9 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         setToolbarItemChecked(menu, MENU_READ_ONLY, readOnlyMode);
         setToolbarItemChecked(menu, MENU_SMOOTH_MODE, smoothMode);
 
+        boolean isFlutter = projectLoaded && isFlutterProject();
         setToolbarItem(menu, MENU_BUILD, projectLoaded, projectLoaded && !buildRunning);
+        setToolbarItem(menu, MENU_FLUTTER_PREVIEW, isFlutter, isFlutter && !buildRunning);
         setToolbarItem(menu, MENU_ERRORS, false, false);
         setToolbarItem(menu, MENU_NEW_FILE, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_ADD_RESOURCE, projectLoaded, projectLoaded);
@@ -1634,6 +1643,13 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         expandDirectory(projectRoot);
         if (isFlutterProject()) {
             expandDirectory(new File(projectRoot, "lib"));
+            expandDirectory(new File(projectRoot, "lib/screens"));
+            expandDirectory(new File(projectRoot, "lib/widgets"));
+            expandDirectory(new File(projectRoot, "lib/models"));
+            expandDirectory(new File(projectRoot, "lib/constants"));
+            expandDirectory(new File(projectRoot, "assets"));
+            expandDirectory(new File(projectRoot, "assets/images"));
+            expandDirectory(new File(projectRoot, "assets/fonts"));
         } else {
             expandDirectory(new File(projectRoot, "app"));
             expandDirectory(new File(projectRoot, "app/src"));
@@ -2185,6 +2201,12 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             }
             updateStatus(relativePath(currentFile) + " - saved");
             setOutput("Saved " + relativePath(currentFile), false);
+            if (isFlutterProject()) {
+                try {
+                    FlutterAppBundler.prepareFlutterAssets(projectRoot, appName != null ? appName : projectName);
+                } catch (Throwable ignored) {
+                }
+            }
             if (showToast) {
                 SketchwareUtil.toast(getString(R.string.studio_saved));
             }
@@ -2395,8 +2417,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             settings.setAllowContentAccess(true);
             settings.setAllowFileAccessFromFileURLs(true);
             settings.setAllowUniversalAccessFromFileURLs(true);
+            settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+            webView.clearCache(true);
             webView.setWebChromeClient(new WebChromeClient());
-            webView.loadUrl("file://" + indexHtml.getAbsolutePath());
+            webView.loadUrl("file://" + indexHtml.getAbsolutePath() + "?t=" + System.currentTimeMillis());
 
             btnReload.setOnClickListener(v -> {
                 try {
@@ -2404,7 +2428,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                         saveCurrentFile(false);
                     }
                     FlutterAppBundler.prepareFlutterAssets(projectRoot, appName != null ? appName : projectName);
-                    webView.reload();
+                    webView.clearCache(true);
+                    webView.loadUrl("file://" + indexHtml.getAbsolutePath() + "?t=" + System.currentTimeMillis());
                     SketchwareUtil.toast(getString(R.string.studio_flutter_hot_reload));
                 } catch (Exception e) {
                     SketchwareUtil.toast(e.getMessage());
@@ -3914,15 +3939,24 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     }
 
     private boolean shouldSkip(File file) {
-        if (!file.isDirectory()) {
-            return false;
+        if (file == null) {
+            return true;
         }
         String name = file.getName();
         if (isFlutterProject()) {
             String rel = relativePath(file).replace('\\', '/').toLowerCase(Locale.US);
-            if (rel.equals("app/src/main/assets/flutter") || rel.startsWith("app/src/main/assets/flutter/")) {
+            if (rel.equals("app") || rel.startsWith("app/")
+                    || rel.equals("gradle") || rel.startsWith("gradle/")
+                    || rel.equals("build.gradle")
+                    || rel.equals("settings.gradle")
+                    || rel.equals("gradlew")
+                    || rel.equals("gradlew.bat")
+                    || rel.equals("local.properties")) {
                 return true;
             }
+        }
+        if (!file.isDirectory()) {
+            return false;
         }
         return name.equals("build")
                 || name.equals(".gradle")

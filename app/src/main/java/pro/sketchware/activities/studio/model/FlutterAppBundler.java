@@ -4,8 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +55,7 @@ public final class FlutterAppBundler {
 
     /**
      * Prepares all Flutter assets required for on-device APK compilation and live preview.
-     * Validates Dart syntax, synchronizes edits, and builds the Flutter runtime bundle.
+     * Validates Dart syntax across all lib/ files, synchronizes edits, and builds the Flutter runtime bundle.
      */
     public static File prepareFlutterAssets(File projectRoot, String appName) throws IOException {
         if (projectRoot == null || !projectRoot.exists()) {
@@ -81,31 +85,74 @@ public final class FlutterAppBundler {
             }
         }
 
-        String dartCode;
+        String mainDartCode;
         if (mainDart.exists()) {
-            dartCode = new String(Files.readAllBytes(mainDart.toPath()), StandardCharsets.UTF_8);
+            mainDartCode = new String(Files.readAllBytes(mainDart.toPath()), StandardCharsets.UTF_8);
         } else {
-            dartCode = StudioLanguageConfigurer.buildFlutterMainDart(appName == null ? "Flutter App" : appName);
-            FileUtil.writeFile(mainDart.getAbsolutePath(), dartCode);
+            mainDartCode = StudioLanguageConfigurer.buildFlutterMainDart(appName == null ? "Flutter App" : appName);
+            FileUtil.writeFile(mainDart.getAbsolutePath(), mainDartCode);
         }
 
-        // Validate syntax before compilation!
-        validateDartSyntax(dartCode, "lib/main.dart");
+        // Collect and validate all .dart files across lib/
+        List<File> allDartFiles = new ArrayList<>();
+        collectDartFiles(libDir, allDartFiles);
+        StringBuilder bundledSources = new StringBuilder();
+        bundledSources.append(mainDartCode).append("\n");
 
-        // Copy verified source to assets
-        FileUtil.writeFile(assetMainDart.getAbsolutePath(), dartCode);
+        for (File dartFile : allDartFiles) {
+            String rel = libDir.toPath().relativize(dartFile.toPath()).toString().replace('\\', '/');
+            String code = new String(Files.readAllBytes(dartFile.toPath()), StandardCharsets.UTF_8);
+            validateDartSyntax(code, "lib/" + rel);
+            if (!dartFile.equals(mainDart)) {
+                bundledSources.append("\n// --- lib/").append(rel).append(" ---\n").append(code).append("\n");
+            }
+        }
 
-        // Generate dynamic runner JS
-        String runnerJs = generateRunnerJs(dartCode, appName);
+        // Recursively copy all files and subdirectories from lib/ to assets/flutter/lib/
+        copyDirectory(libDir, new File(assetsFlutterDir, "lib"));
+
+        // Copy verified main.dart to assets
+        FileUtil.writeFile(assetMainDart.getAbsolutePath(), mainDartCode);
+
+        // Generate dynamic runner JS with all bundled sources
+        String runnerJs = generateRunnerJs(bundledSources.toString(), appName);
         File runnerJsFile = new File(assetsFlutterDir, "flutter_runner.js");
         FileUtil.writeFile(runnerJsFile.getAbsolutePath(), runnerJs);
 
         // Generate index.html
-        String indexHtml = generateHtml(dartCode, appName);
+        String indexHtml = generateHtml(bundledSources.toString(), appName);
         File indexHtmlFile = new File(assetsFlutterDir, "index.html");
         FileUtil.writeFile(indexHtmlFile.getAbsolutePath(), indexHtml);
 
         return indexHtmlFile;
+    }
+
+    private static void collectDartFiles(File dir, List<File> list) {
+        if (dir == null || !dir.exists() || !dir.isDirectory()) return;
+        File[] children = dir.listFiles();
+        if (children == null) return;
+        for (File f : children) {
+            if (f.isDirectory()) {
+                collectDartFiles(f, list);
+            } else if (f.isFile() && f.getName().toLowerCase(Locale.US).endsWith(".dart")) {
+                list.add(f);
+            }
+        }
+    }
+
+    public static void copyDirectory(File src, File dest) throws IOException {
+        if (!src.exists()) return;
+        if (src.isDirectory()) {
+            if (!dest.exists()) dest.mkdirs();
+            File[] files = src.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    copyDirectory(file, new File(dest, file.getName()));
+                }
+            }
+        } else {
+            Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     /**

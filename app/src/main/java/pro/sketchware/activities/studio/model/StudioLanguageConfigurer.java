@@ -210,12 +210,42 @@ public final class StudioLanguageConfigurer {
         }
 
         File libDir = new File(projectRoot, "lib");
-        if (!libDir.exists()) {
-            libDir.mkdirs();
+        File screensDir = new File(libDir, "screens");
+        File widgetsDir = new File(libDir, "widgets");
+        File modelsDir = new File(libDir, "models");
+        File constantsDir = new File(libDir, "constants");
+        screensDir.mkdirs();
+        widgetsDir.mkdirs();
+        modelsDir.mkdirs();
+        constantsDir.mkdirs();
+
+        File assetsDir = new File(projectRoot, "assets");
+        File imagesDir = new File(assetsDir, "images");
+        File fontsDir = new File(assetsDir, "fonts");
+        imagesDir.mkdirs();
+        fontsDir.mkdirs();
+        try {
+            new File(imagesDir, ".gitkeep").createNewFile();
+            new File(fontsDir, ".gitkeep").createNewFile();
+        } catch (Exception ignored) {
         }
 
+        String safeAppTitle = (appName == null ? "Flutter App" : appName);
+
         File mainDart = new File(libDir, "main.dart");
-        FileUtil.writeFile(mainDart.getAbsolutePath(), buildFlutterMainDart(appName == null ? "Flutter App" : appName));
+        FileUtil.writeFile(mainDart.getAbsolutePath(), buildFlutterMainDart(safeAppTitle));
+
+        File homeScreenDart = new File(screensDir, "home_screen.dart");
+        FileUtil.writeFile(homeScreenDart.getAbsolutePath(), buildFlutterHomeScreenDart(safeAppTitle));
+
+        File customButtonDart = new File(widgetsDir, "custom_button.dart");
+        FileUtil.writeFile(customButtonDart.getAbsolutePath(), buildFlutterCustomButtonDart());
+
+        File appColorsDart = new File(constantsDir, "app_colors.dart");
+        FileUtil.writeFile(appColorsDart.getAbsolutePath(), buildFlutterAppColorsDart());
+
+        File itemModelDart = new File(modelsDir, "item_model.dart");
+        FileUtil.writeFile(itemModelDart.getAbsolutePath(), buildFlutterItemModelDart());
 
         File pubspecFile = new File(projectRoot, "pubspec.yaml");
         FileUtil.writeFile(pubspecFile.getAbsolutePath(), buildPubspecYaml(cleanAppName));
@@ -303,8 +333,10 @@ public final class StudioLanguageConfigurer {
     }
 
     public static String buildFlutterMainDart(String appTitle) {
-
-        return "import 'package:flutter/material.dart';\n\n"
+        String safeTitle = appTitle.replace("'", "\\'");
+        return "import 'package:flutter/material.dart';\n"
+                + "import 'screens/home_screen.dart';\n"
+                + "import 'constants/app_colors.dart';\n\n"
                 + "void main() {\n"
                 + "  runApp(const MyApp());\n"
                 + "}\n\n"
@@ -313,23 +345,30 @@ public final class StudioLanguageConfigurer {
                 + "  @override\n"
                 + "  Widget build(BuildContext context) {\n"
                 + "    return MaterialApp(\n"
-                + "      title: '" + appTitle.replace("'", "\\'") + "',\n"
+                + "      title: '" + safeTitle + "',\n"
                 + "      debugShowCheckedModeBanner: false,\n"
                 + "      theme: ThemeData(\n"
-                + "        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),\n"
+                + "        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),\n"
                 + "        useMaterial3: true,\n"
                 + "      ),\n"
-                + "      home: const MyHomePage(title: '" + appTitle.replace("'", "\\'") + "'),\n"
+                + "      home: const HomeScreen(title: '" + safeTitle + "'),\n"
                 + "    );\n"
                 + "  }\n"
-                + "}\n\n"
-                + "class MyHomePage extends StatefulWidget {\n"
-                + "  const MyHomePage({super.key, required this.title});\n\n"
+                + "}\n";
+    }
+
+    public static String buildFlutterHomeScreenDart(String appTitle) {
+        String safeTitle = appTitle.replace("'", "\\'");
+        return "import 'package:flutter/material.dart';\n"
+                + "import '../constants/app_colors.dart';\n"
+                + "import '../widgets/custom_button.dart';\n\n"
+                + "class HomeScreen extends StatefulWidget {\n"
+                + "  const HomeScreen({super.key, required this.title});\n\n"
                 + "  final String title;\n\n"
                 + "  @override\n"
-                + "  State<MyHomePage> createState() => _MyHomePageState();\n"
+                + "  State<HomeScreen> createState() => _HomeScreenState();\n"
                 + "}\n\n"
-                + "class _MyHomePageState extends State<MyHomePage> {\n"
+                + "class _HomeScreenState extends State<HomeScreen> {\n"
                 + "  int _counter = 0;\n\n"
                 + "  void _incrementCounter() {\n"
                 + "    setState(() {\n"
@@ -347,10 +386,24 @@ public final class StudioLanguageConfigurer {
                 + "        child: Column(\n"
                 + "          mainAxisAlignment: MainAxisAlignment.center,\n"
                 + "          children: <Widget>[\n"
+                + "            const Text(\n"
+                + "              'Welcome to your Flutter project!',\n"
+                + "              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),\n"
+                + "            ),\n"
+                + "            const SizedBox(height: 16),\n"
                 + "            const Text('You have pushed the button this many times:'),\n"
                 + "            Text(\n"
                 + "              '$_counter',\n"
-                + "              style: Theme.of(context).textTheme.headlineMedium,\n"
+                + "              style: Theme.of(context).textTheme.headlineMedium?.copyWith(\n"
+                + "                    color: AppColors.primary,\n"
+                + "                    fontWeight: FontWeight.bold,\n"
+                + "                  ),\n"
+                + "            ),\n"
+                + "            const SizedBox(height: 24),\n"
+                + "            CustomButton(\n"
+                + "              label: 'Increment',\n"
+                + "              icon: Icons.add,\n"
+                + "              onPressed: _incrementCounter,\n"
                 + "            ),\n"
                 + "          ],\n"
                 + "        ),\n"
@@ -362,6 +415,57 @@ public final class StudioLanguageConfigurer {
                 + "      ),\n"
                 + "    );\n"
                 + "  }\n"
+                + "}\n";
+    }
+
+    public static String buildFlutterCustomButtonDart() {
+        return "import 'package:flutter/material.dart';\n\n"
+                + "class CustomButton extends StatelessWidget {\n"
+                + "  final String label;\n"
+                + "  final VoidCallback onPressed;\n"
+                + "  final IconData? icon;\n\n"
+                + "  const CustomButton({\n"
+                + "    super.key,\n"
+                + "    required this.label,\n"
+                + "    required this.onPressed,\n"
+                + "    this.icon,\n"
+                + "  });\n\n"
+                + "  @override\n"
+                + "  Widget build(BuildContext context) {\n"
+                + "    if (icon != null) {\n"
+                + "      return FilledButton.icon(\n"
+                + "        onPressed: onPressed,\n"
+                + "        icon: Icon(icon),\n"
+                + "        label: Text(label),\n"
+                + "      );\n"
+                + "    }\n"
+                + "    return FilledButton(\n"
+                + "      onPressed: onPressed,\n"
+                + "      child: Text(label),\n"
+                + "    );\n"
+                + "  }\n"
+                + "}\n";
+    }
+
+    public static String buildFlutterAppColorsDart() {
+        return "import 'package:flutter/material.dart';\n\n"
+                + "class AppColors {\n"
+                + "  static const Color primary = Colors.deepPurple;\n"
+                + "  static const Color secondary = Colors.amber;\n"
+                + "  static const Color background = Color(0xFFF8F9FA);\n"
+                + "}\n";
+    }
+
+    public static String buildFlutterItemModelDart() {
+        return "class ItemModel {\n"
+                + "  final String id;\n"
+                + "  final String title;\n"
+                + "  final bool isCompleted;\n\n"
+                + "  const ItemModel({\n"
+                + "    required this.id,\n"
+                + "    required this.title,\n"
+                + "    this.isCompleted = false,\n"
+                + "  });\n"
                 + "}\n";
     }
 
@@ -381,7 +485,10 @@ public final class StudioLanguageConfigurer {
                 + "    sdk: flutter\n"
                 + "  flutter_lints: ^4.0.0\n\n"
                 + "flutter:\n"
-                + "  uses-material-design: true\n";
+                + "  uses-material-design: true\n"
+                + "  assets:\n"
+                + "    - assets/images/\n"
+                + "    - assets/fonts/\n";
     }
 
     private static String buildAnalysisOptionsYaml() {
