@@ -33,7 +33,7 @@ import java.util.WeakHashMap;
 
 import pro.sketchware.BuildConfig;
 
-/** Monetization of Sketchware IA itself; independent of ads in user-generated apps. */
+/** Monetization of Sumer Studio itself; independent of ads in user-generated apps. */
 public final class AdManager {
     public static final String GAME_ID = "800408466";
     public static final String BANNER_PLACEMENT_ID = "BP_Banner_Android";

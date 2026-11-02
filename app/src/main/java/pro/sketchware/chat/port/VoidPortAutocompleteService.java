@@ -118,7 +118,7 @@ public final class VoidPortAutocompleteService {
                 return new CompletionResult(false, options.predictionType, "", "", "", "");
             }
 
-            String systemPrompt = "You are Sketchware IA Autocomplete. Return only code that belongs between the prefix and suffix. Do not wrap the answer in Markdown.";
+            String systemPrompt = "You are Sumer Studio Autocomplete. Return only code that belongs between the prefix and suffix. Do not wrap the answer in Markdown.";
             String userPrompt = buildFimInstructionBlock(options.llmPrefix, options.llmSuffix)
                     + "\n\nLanguage: " + nonEmpty(language, "text")
                     + "\nFile: " + nonEmpty(filePath, "unknown")

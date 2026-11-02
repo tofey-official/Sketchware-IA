@@ -6,7 +6,7 @@
     <string name="design_manager_lottie_title_add_lottie">Add Lottie animation</string>
     <string name="search_menu_title">Search</string>
     <string name="search">Search</string>
-    <string name="app_name">Sketchware IA</string>
+    <string name="app_name">Sumer Studio</string>
     <string name="project_type_native">Native</string>
     <string name="project_type_android_studio">Android Studio</string>
     <string name="main_search_projects_hint">Search projects...</string>
@@ -2471,7 +2471,7 @@ Please try again later"</string>
     <string name="title_company_url">Website</string>
     <string name="title_compatible_chrome_browser">Chrome Browser Required</string>
     <string name="title_telegram_community">Telegram</string>
-    <string name="title_sketchware">Sketchware IA</string>
+    <string name="title_sketchware">Sumer Studio</string>
     <string name="view_panel_title_layouts">Layouts</string>
     <string name="view_panel_title_properties">Properties</string>
     <string name="view_panel_title_widgets">Widgets</string>
@@ -2568,8 +2568,8 @@ Please try again later"</string>
     <string name="assets_manager_rename">Rename</string>
 
     <!--  about the team screen  -->
-    <string name="about_title">About Sketchware IA</string>
-    <string name="about_version_subtitle">Sketchware IA %1$s</string>
+    <string name="about_title">About Sumer Studio</string>
+    <string name="about_version_subtitle">Sumer Studio %1$s</string>
     <string name="about_team_title">The team</string>
     <string name="about_specialthanks_title">Special Thanks</string>
     <string name="about_changelog_title">Changelog</string>
@@ -2579,7 +2579,7 @@ Please try again later"</string>
     <string name="about_jointelegram">Join our Telegram</string>
 
     <!--  links  -->
-    <string name="link_github_release">https://github.com/FabioSilva11/Sketchware-IA/releases</string>
+    <string name="link_github_release">https://github.com/tofey-official/Sketchware-IA/releases</string>
     <string name="link_docs_url">https://t.me/sketcware_ia</string>
     <string name="link_youtube_url">https://youtube.com/@sketchware-ia?si=C4xJ-0xfeXxUnnB7</string>
     <string name="link_telegram_invite">https://t.me/sketcware_ia</string>
@@ -2587,13 +2587,13 @@ Please try again later"</string>
     <string name="title_discord_community">Discord</string>
     <string name="link_discord_invite">https://t.me/sketcware_ia</string>
 
-    <string name="link_github_commits_url"><![CDATA[https://api.github.com/repos/FabioSilva11/Sketchware-IA/commits?per_page=%1$s&page=%2$s]]></string>
-    <string name="link_github_main_commit_url">https://api.github.com/repos/FabioSilva11/Sketchware-IA/commits/main</string>
-    <string name="link_github_contributors_url">https://api.github.com/repos/FabioSilva11/Sketchware-IA/contributors?per_page=100</string>
-    <string name="link_github_releases_url">https://api.github.com/repos/FabioSilva11/Sketchware-IA/releases?per_page=25</string>
+    <string name="link_github_commits_url"><![CDATA[https://api.github.com/repos/tofey-official/Sketchware-IA/commits?per_page=%1$s&page=%2$s]]></string>
+    <string name="link_github_main_commit_url">https://api.github.com/repos/tofey-official/Sketchware-IA/commits/main</string>
+    <string name="link_github_contributors_url">https://api.github.com/repos/tofey-official/Sketchware-IA/contributors?per_page=100</string>
+    <string name="link_github_releases_url">https://api.github.com/repos/tofey-official/Sketchware-IA/releases?per_page=25</string>
     <string name="github_api_error_message">Something went wrong. Please wait and try again.</string>
     <string name="github_api_date_unavailable">Date unavailable</string>
-    <string name="link_github_url">https://github.com/FabioSilva11/Sketchware-IA</string>
+    <string name="link_github_url">https://github.com/tofey-official/Sketchware-IA</string>
     <string name="link_sw_assist">https://play.google.com/store/apps/details?id=com.w3wide.swassist</string>
     <string name="change_launcher_activity_dialog_title">Launcher Activity</string>
     <string name="common_word_add_activtiy">Add Activity</string>
@@ -3112,7 +3112,7 @@ Please try again later"</string>
 
     <!-- Donation dialog and drawer -->
     <string name="donation_dialog_title">Support the project</string>
-    <string name="donation_dialog_message">If you enjoy Sketchware IA, consider making a donation to support ongoing development and keep the project alive.</string>
+    <string name="donation_dialog_message">If you enjoy Sumer Studio, consider making a donation to support ongoing development and keep the project alive.</string>
     <string name="donation_button_donate">Donate</string>
     <string name="donation_button_cancel">Cancel</string>
     <string name="main_drawer_title_donate">Donate</string>
@@ -3325,7 +3325,7 @@ Please try again later"</string>
     <string name="chat_avatar_ai">AI</string>
     <string name="chat_background_channel_description">Keeps the conversation running while another app is open.</string>
     <string name="chat_background_channel_name">AI runs</string>
-    <string name="chat_background_notification_title">Sketchware IA is working</string>
+    <string name="chat_background_notification_title">Sumer Studio is working</string>
     <string name="chat_cancel_current_run_content_description">Cancel current run</string>
     <string name="chat_clipboard_label">Chat</string>
     <string name="chat_debug_enabled_message">Debug enabled — metrics for all interactions will be shown here.</string>

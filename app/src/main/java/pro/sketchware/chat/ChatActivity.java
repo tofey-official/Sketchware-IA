@@ -3109,7 +3109,7 @@ public class ChatActivity extends BaseAppCompatActivity {
 
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_SUBJECT, "Sketchware IA Chat Export - " + sc_id);
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Sumer Studio Chat Export - " + sc_id);
         intent.putExtra(Intent.EXTRA_TEXT, sb.toString());
         AxionAnalytics.logEvent(
                 this,

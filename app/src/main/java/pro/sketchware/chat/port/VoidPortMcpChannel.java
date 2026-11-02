@@ -459,8 +459,8 @@ public final class VoidPortMcpChannel {
         }
         meta.put("io.modelcontextprotocol/protocolVersion", PROTOCOL_VERSION);
         meta.put("io.modelcontextprotocol/clientInfo", new JSONObject()
-                .put("name", "Sketchware IA")
-                .put("title", "Sketchware IA")
+                .put("name", "Sumer Studio")
+                .put("title", "Sumer Studio")
                 .put("version", "android"));
         meta.put("io.modelcontextprotocol/clientCapabilities", new JSONObject());
 
@@ -558,8 +558,8 @@ public final class VoidPortMcpChannel {
                         .put("protocolVersion", LEGACY_PROTOCOL_VERSION)
                         .put("capabilities", capabilities)
                         .put("clientInfo", new JSONObject()
-                                .put("name", "Sketchware IA")
-                                .put("title", "Sketchware IA")
+                                .put("name", "Sumer Studio")
+                                .put("title", "Sumer Studio")
                                 .put("version", "android"))), "", "", server);
         if (init.body.has("error")) {
             throw new IOException("MCP initialization failed: " + init.body.optJSONObject("error"));

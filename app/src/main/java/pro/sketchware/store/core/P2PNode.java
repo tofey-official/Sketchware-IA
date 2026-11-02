@@ -324,7 +324,7 @@ public final class P2PNode {
     public String share(File content, String kind, boolean pinned, String owner) throws IOException {
         // v1 only: magnet links by btih don't carry v2 piece layers, so hybrid torrents can't be
         // downloaded that way. Pieces are still hash-checked, and what was signed is verified on top.
-        TorrentBuilder.Result result = new TorrentBuilder().path(content).creator("Sketchware IA")
+        TorrentBuilder.Result result = new TorrentBuilder().path(content).creator("Sumer Studio")
                 .flags(TorrentBuilder.V1_ONLY).setPrivate(false).generate();
         byte[] torrent = result.entry().bencode();
         TorrentInfo info = TorrentInfo.bdecode(torrent);

@@ -1,13 +1,13 @@
-Sketchware IA
+# Sumer Studio
 
 <p align="center">
-  <img src="assets/sketchware-ia-icon.png" width="160" alt="Sketchware IA Logo">
+  <img src="assets/sketchware-ia-icon.png" width="160" alt="Sumer Studio Logo">
 </p><h3 align="center">
   Crie apps Android direto do celular com blocos, Java/Kotlin e inteligência artificial.
 </h3><p align="center">
-  O <strong>Sketchware IA</strong> é uma IDE mobile baseada no Sketchware, mantida pela comunidade, com foco em editor visual, desenvolvimento Android no celular e integração com IA.
+  O <strong>Sumer Studio</strong> é uma IDE mobile baseada no Sketchware, mantida pela comunidade, com foco em editor visual, desenvolvimento Android no celular e integração com IA.
 </p><p align="center">
-  <a href="https://github.com/FabioSilva11/Sketchware-IA/releases">
+  <a href="https://github.com/tofey-official/Sketchware-IA/releases">
     <strong>Baixar APK</strong>
   </a>
   ·
@@ -19,22 +19,22 @@ Sketchware IA
     <strong>Roadmap</strong>
   </a>
   ·
-  <a href="https://github.com/FabioSilva11/Sketchware-IA/issues">
+  <a href="https://github.com/tofey-official/Sketchware-IA/issues">
     <strong>Reportar bug</strong>
   </a>
 </p><p align="center">
-  <img src="https://img.shields.io/github/stars/FabioSilva11/Sketchware-IA?style=social" alt="GitHub Stars">
-  <img src="https://img.shields.io/github/forks/FabioSilva11/Sketchware-IA?style=social" alt="GitHub Forks">
-  <img src="https://img.shields.io/github/v/release/FabioSilva11/Sketchware-IA?include_prereleases" alt="Latest Release">
+  <img src="https://img.shields.io/github/stars/tofey-official/Sketchware-IA?style=social" alt="GitHub Stars">
+  <img src="https://img.shields.io/github/forks/tofey-official/Sketchware-IA?style=social" alt="GitHub Forks">
+  <img src="https://img.shields.io/github/v/release/tofey-official/Sketchware-IA?include_prereleases" alt="Latest Release">
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Android">
   <img src="https://img.shields.io/badge/language-Java%20%2F%20Kotlin-blue" alt="Java Kotlin">
   <img src="https://img.shields.io/badge/license-source--available-orange" alt="Source Available">
 </p>
 
 ---
-✨ O que é o Sketchware IA?
+✨ O que é o Sumer Studio?
 
-O Sketchware IA é uma continuação moderna do Sketchware para Android, criada para permitir que pessoas desenvolvam aplicativos diretamente pelo celular.
+O Sumer Studio é uma continuação moderna do Sketchware para Android, criada para permitir que pessoas desenvolvam aplicativos diretamente pelo celular.
 
 A proposta é unir:
 
@@ -54,7 +54,7 @@ A proposta é unir:
 
 Muita gente quer criar aplicativos Android, mas nem todo mundo tem acesso a um computador potente, Android Studio ou uma estrutura profissional de desenvolvimento.
 
-O Sketchware IA nasce para resolver isso:
+O Sumer Studio nasce para resolver isso:
 
 «Criar, editar, corrigir e compilar apps Android direto do celular, com ajuda de IA.»
 
@@ -128,7 +128,7 @@ Crie, compile e teste seus projetos Android diretamente no celular.
 
 🌎 Projeto mantido pela comunidade
 
-O Sketchware IA é mantido por pessoas interessadas em desenvolvimento Android mobile, IA, ferramentas visuais e educação tecnológica.
+O Sumer Studio é mantido por pessoas interessadas em desenvolvimento Android mobile, IA, ferramentas visuais e educação tecnológica.
 
 ---
 
@@ -136,7 +136,7 @@ O Sketchware IA é mantido por pessoas interessadas em desenvolvimento Android m
 
 Baixe a versão mais recente na página de releases:
 
-👉 "Download do APK" (https://github.com/FabioSilva11/Sketchware-IA/releases)
+👉 "Download do APK" (https://github.com/tofey-official/Sketchware-IA/releases)
 
 «Recomendação: baixe APKs apenas pela página oficial de Releases deste repositório.»
 
@@ -145,7 +145,7 @@ Baixe a versão mais recente na página de releases:
 ⚡ Como usar
 
 1. Baixe e instale o APK.
-2. Abra o Sketchware IA.
+2. Abra o Sumer Studio.
 3. Crie um novo projeto.
 4. Monte a interface usando o editor visual.
 5. Use blocos, Java ou Kotlin para criar a lógica.
@@ -208,7 +208,7 @@ Você pode contribuir com:
 
 🔗 Integração com GitHub
 
-Funcionalidade planejada para transformar o Sketchware IA em um ambiente de desenvolvimento mobile com versionamento completo.
+Funcionalidade planejada para transformar o Sumer Studio em um ambiente de desenvolvimento mobile com versionamento completo.
 
 Ideias previstas:
 
@@ -222,7 +222,7 @@ Ideias previstas:
 
 🔮 Futuro: migração para Flutter
 
-Existe uma visão de longo prazo para migrar gradualmente o Sketchware IA para Flutter/Dart, modernizando a interface e permitindo expansão futura para múltiplas plataformas.
+Existe uma visão de longo prazo para migrar gradualmente o Sumer Studio para Flutter/Dart, modernizando a interface e permitindo expansão futura para múltiplas plataformas.
 
 Possibilidades futuras:
 
@@ -264,7 +264,7 @@ Contribuições são bem-vindas.
 
 Veja as issues abertas:
 
-👉 "Issues do projeto" (https://github.com/FabioSilva11/Sketchware-IA/issues)
+👉 "Issues do projeto" (https://github.com/tofey-official/Sketchware-IA/issues)
 
 Boas primeiras contribuições devem ser marcadas com:
 
@@ -278,7 +278,7 @@ Boas primeiras contribuições devem ser marcadas com:
 
 2. Faça um fork
 
-git clone https://github.com/FabioSilva11/Sketchware-IA.git
+git clone https://github.com/tofey-official/Sketchware-IA.git
 cd Sketchware-IA
 
 3. Crie uma branch
@@ -318,7 +318,7 @@ Pré-requisitos
 
 Compilar localmente
 
-git clone https://github.com/FabioSilva11/Sketchware-IA.git
+git clone https://github.com/tofey-official/Sketchware-IA.git
 cd Sketchware-IA
 ./gradlew assembleDebug
 
@@ -359,7 +359,7 @@ adicione_aqui_o_hash_do_apk
 
 🤖 Use IA para contribuir
 
-Você pode usar inteligência artificial para ajudar no desenvolvimento do próprio Sketchware IA.
+Você pode usar inteligência artificial para ajudar no desenvolvimento do próprio Sumer Studio.
 
 A IA pode ajudar a:
 
@@ -383,14 +383,14 @@ Se você acredita no projeto, ajude compartilhando.
 
 Sugestão de texto:
 
-Conheça o Sketchware IA 🚀
+Conheça o Sumer Studio 🚀
 
 Uma IDE Android com blocos visuais, Java/Kotlin e inteligência artificial, criada para desenvolver apps direto do celular.
 
 O projeto é mantido pela comunidade e está buscando contribuidores em Android, Java, Kotlin, IA, UI/UX e documentação.
 
 GitHub:
-https://github.com/FabioSilva11/Sketchware-IA
+https://github.com/tofey-official/Sketchware-IA
 
 ---
 
@@ -414,7 +414,7 @@ Se você quer contribuir mas não sabe por onde começar, aqui estão algumas id
 
 ⚖️ Licença
 
-O Sketchware IA é um projeto source-available, não um projeto open source convencional.
+O Sumer Studio é um projeto source-available, não um projeto open source convencional.
 
 Leia o arquivo "LICENSE.md" (LICENSE.md) antes de reutilizar código fora deste repositório.
 
@@ -426,14 +426,14 @@ Algumas partes do projeto têm origem em bases anteriores do ecossistema Sketchw
 
 Este projeto existe porque a comunidade ainda acredita no potencial de criar aplicativos Android direto do celular.
 
-Se você é desenvolvedor, estudante, designer, criador de conteúdo ou entusiasta de IA, sua contribuição pode ajudar a tornar o Sketchware IA melhor para todos.
+Se você é desenvolvedor, estudante, designer, criador de conteúdo ou entusiasta de IA, sua contribuição pode ajudar a tornar o Sumer Studio melhor para todos.
 
 <p align="center">
-  <a href="https://github.com/FabioSilva11/Sketchware-IA/releases">Baixar APK</a>
+  <a href="https://github.com/tofey-official/Sketchware-IA/releases">Baixar APK</a>
   ·
-  <a href="https://github.com/FabioSilva11/Sketchware-IA/issues">Reportar bug</a>
+  <a href="https://github.com/tofey-official/Sketchware-IA/issues">Reportar bug</a>
   ·
-  <a href="https://github.com/FabioSilva11/Sketchware-IA/pulls">Contribuir</a>
+  <a href="https://github.com/tofey-official/Sketchware-IA/pulls">Contribuir</a>
 </p><p align="center">
-  Feito com ❤️ pela comunidade Sketchware IA
+  Feito com ❤️ pela comunidade Sumer Studio
 </p>
