@@ -46,6 +46,14 @@
     <string name="studio_action_new_file">New file</string>
     <string name="studio_action_rename">Rename</string>
     <string name="studio_action_delete">Delete</string>
+    <string name="studio_action_new_folder">New folder</string>
+    <string name="studio_folder_created">Folder created</string>
+    <string name="studio_close_tab">Close</string>
+    <string name="studio_close_other_tabs">Close other tabs</string>
+    <string name="studio_close_all_tabs">Close all tabs</string>
+    <string name="studio_unsaved_changes_message">Do you want to save changes to %1$s before closing?</string>
+    <string name="studio_collapse_all_folders">Folders collapsed</string>
+    <string name="studio_refresh_tree">File tree refreshed</string>
     <string name="studio_action_add_resource">Add resource</string>
     <string name="studio_action_add_icon">Add icon</string>
     <string name="studio_action_text_color">Text color</string>

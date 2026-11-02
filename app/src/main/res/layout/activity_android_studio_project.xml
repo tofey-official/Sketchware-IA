@@ -363,6 +363,23 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                <HorizontalScrollView
+                    android:id="@+id/studio_symbol_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:background="@color/studio_surface_alt"
+                    android:scrollbars="none"
+                    android:visibility="visible">
+
+                    <LinearLayout
+                        android:id="@+id/studio_symbol_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="4dp" />
+                </HorizontalScrollView>
+
                 <TextView
                     android:id="@+id/studio_status"
                     android:layout_width="match_parent"
@@ -491,19 +508,67 @@
         android:background="@drawable/bg_studio_panel"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/studio_file_panel_title"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="12dp"
-            android:singleLine="true"
-            android:text="@string/studio_files"
-            android:textColor="@color/studio_text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:paddingTop="8dp"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:id="@+id/studio_file_panel_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="@string/studio_files"
+                android:textColor="@color/studio_text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/btn_tree_new_file"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/studio_action_new_file"
+                android:padding="6dp"
+                android:src="@drawable/ic_mtrl_add"
+                app:tint="@color/studio_text_secondary" />
+
+            <ImageView
+                android:id="@+id/btn_tree_new_folder"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/studio_action_new_file"
+                android:padding="6dp"
+                android:src="@drawable/ic_mtrl_folder"
+                app:tint="@color/studio_text_secondary" />
+
+            <ImageView
+                android:id="@+id/btn_tree_collapse_all"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/studio_output_collapse"
+                android:padding="6dp"
+                android:src="@drawable/ic_mtrl_expand"
+                app:tint="@color/studio_text_secondary" />
+
+            <ImageView
+                android:id="@+id/btn_tree_refresh"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/studio_output_clear"
+                android:padding="6dp"
+                android:src="@drawable/ic_mtrl_refresh"
+                app:tint="@color/studio_text_secondary" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/studio_project_path"

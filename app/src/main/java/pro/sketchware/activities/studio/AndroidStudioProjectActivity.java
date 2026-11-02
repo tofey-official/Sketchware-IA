@@ -60,14 +60,18 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import a.a.a.Lx;
 import a.a.a.lC;
 import a.a.a.ProjectBuilder;
 import a.a.a.wq;
 import a.a.a.yq;
+import io.github.rosemoe.sora.event.ContentChangeEvent;
+import io.github.rosemoe.sora.event.SelectionChangeEvent;
 import io.github.rosemoe.sora.lang.EmptyLanguage;
 import io.github.rosemoe.sora.lang.Language;
 import io.github.rosemoe.sora.langs.java.JavaLanguage;
@@ -92,6 +96,7 @@ import pro.sketchware.chat.port.GitHubProjectSyncService;
 import pro.sketchware.chat.port.VoidPortSettings;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ActivityAndroidStudioProjectBinding;
+import pro.sketchware.databinding.ItemStudioFileTabBinding;
 import pro.sketchware.databinding.ItemStudioFileTreeBinding;
 import pro.sketchware.utility.EditorUtils;
 import pro.sketchware.utility.FileUtil;
@@ -435,7 +440,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         setToolbarItem(menu, MENU_UNDO, codeFileVisible, codeFileVisible);
         setToolbarItem(menu, MENU_REDO, codeFileVisible, codeFileVisible);
         setToolbarItem(menu, MENU_SAVE, codeFileVisible, codeFileVisible);
-        setToolbarItem(menu, MENU_FORMAT, codeFileVisible && xmlFile, codeFileVisible && xmlFile);
+        setToolbarItem(menu, MENU_FORMAT, codeFileVisible, codeFileVisible);
         setToolbarItem(menu, MENU_THEME, codeFileVisible, codeFileVisible);
         setToolbarItem(menu, MENU_TEXT_COLOR, layoutXml, layoutXml);
         setToolbarItem(menu, MENU_SEARCH, codeFileVisible, codeFileVisible);
@@ -623,8 +628,369 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         activeEditor = binding.studioEditor;
         configureEditor(binding.studioEditor);
         setupFileTabs();
+        setupSymbolBar();
         setupOutputPanel();
         setupSearchReplacePanel();
+    }
+
+    private void setupSymbolBar() {
+        binding.studioSymbolContainer.removeAllViews();
+        String[] symbols = {
+                "TAB", "◀", "▶", "{ }", "( )", "[ ]",
+                "\"", "'", ";", "=", ".", ",", ":", "->",
+                "//", "!", "?", "@", "&", "|", "<", ">",
+                "+", "-", "*", "/", "_", "%", "$", "#"
+        };
+
+        for (String symbol : symbols) {
+            TextView btn = createSymbolButton(symbol);
+            btn.setOnClickListener(v -> handleSymbolClick(symbol));
+            binding.studioSymbolContainer.addView(btn);
+        }
+    }
+
+    private TextView createSymbolButton(String symbol) {
+        TextView btn = new TextView(this);
+        btn.setText(symbol);
+        btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        btn.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        btn.setTextColor(getResources().getColor(R.color.studio_text_primary, getTheme()));
+        btn.setGravity(Gravity.CENTER);
+
+        int hPad = dp(symbol.length() > 2 ? 10 : 8);
+        int vPad = dp(4);
+        btn.setPadding(hPad, vPad, hPad, vPad);
+        btn.setMinimumWidth(dp(34));
+        btn.setMinimumHeight(dp(30));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(getResources().getColor(R.color.studio_code_background, getTheme()));
+        bg.setCornerRadius(dp(6));
+        bg.setStroke(dp(1), getResources().getColor(R.color.studio_border, getTheme()));
+        btn.setBackground(bg);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                dp(30)
+        );
+        params.setMargins(dp(3), dp(4), dp(3), dp(4));
+        btn.setLayoutParams(params);
+
+        return btn;
+    }
+
+    private void handleSymbolClick(String symbol) {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        CodeEditor editor = getActiveEditor();
+        if (!editor.isEditable()) {
+            SketchwareUtil.toastError(getString(R.string.studio_read_only_enabled));
+            return;
+        }
+
+        int cursorLine = editor.getCursor().getLeftLine();
+        int cursorCol = editor.getCursor().getLeftColumn();
+
+        if ("TAB".equals(symbol)) {
+            editor.getText().insert(cursorLine, cursorCol, "    ");
+            editor.setSelection(cursorLine, cursorCol + 4);
+        } else if ("◀".equals(symbol)) {
+            if (cursorCol > 0) {
+                editor.setSelection(cursorLine, cursorCol - 1);
+            } else if (cursorLine > 0) {
+                int prevCol = editor.getText().getColumnCount(cursorLine - 1);
+                editor.setSelection(cursorLine - 1, prevCol);
+            }
+        } else if ("▶".equals(symbol)) {
+            int maxCol = editor.getText().getColumnCount(cursorLine);
+            if (cursorCol < maxCol) {
+                editor.setSelection(cursorLine, cursorCol + 1);
+            } else if (cursorLine + 1 < editor.getLineCount()) {
+                editor.setSelection(cursorLine + 1, 0);
+            }
+        } else if ("{ }".equals(symbol)) {
+            wrapOrInsertPair(editor, "{", "}");
+        } else if ("( )".equals(symbol)) {
+            wrapOrInsertPair(editor, "(", ")");
+        } else if ("[ ]".equals(symbol)) {
+            wrapOrInsertPair(editor, "[", "]");
+        } else if ("\"".equals(symbol)) {
+            wrapOrInsertPair(editor, "\"", "\"");
+        } else if ("'".equals(symbol)) {
+            wrapOrInsertPair(editor, "'", "'");
+        } else if ("//".equals(symbol)) {
+            toggleLineComment(editor, cursorLine);
+        } else {
+            editor.getText().insert(cursorLine, cursorCol, symbol);
+            editor.setSelection(cursorLine, cursorCol + symbol.length());
+        }
+
+        updateUnsavedStatusForActiveTab();
+        updateCursorPositionStatus();
+    }
+
+    private void wrapOrInsertPair(CodeEditor editor, String open, String close) {
+        if (editor.getCursor().isSelected()) {
+            int leftLine = editor.getCursor().getLeftLine();
+            int leftCol = editor.getCursor().getLeftColumn();
+            int rightLine = editor.getCursor().getRightLine();
+            int rightCol = editor.getCursor().getRightColumn();
+
+            editor.getText().insert(leftLine, leftCol, open);
+            int adjustedRightLine = rightLine;
+            int adjustedRightCol = (leftLine == rightLine) ? rightCol + open.length() : rightCol;
+            editor.getText().insert(adjustedRightLine, adjustedRightCol, close);
+        } else {
+            int line = editor.getCursor().getLeftLine();
+            int col = editor.getCursor().getLeftColumn();
+            editor.getText().insert(line, col, open + close);
+            editor.setSelection(line, col + open.length());
+        }
+    }
+
+    private void toggleLineComment(CodeEditor editor, int line) {
+        int colCount = editor.getText().getColumnCount(line);
+        String lineStr = editor.getText().getLine(line).toString();
+        int firstNonSpace = 0;
+        while (firstNonSpace < lineStr.length() && Character.isWhitespace(lineStr.charAt(firstNonSpace))) {
+            firstNonSpace++;
+        }
+        if (firstNonSpace <= lineStr.length() - 2 && lineStr.startsWith("//", firstNonSpace)) {
+            int deleteCount = (firstNonSpace <= lineStr.length() - 3 && lineStr.charAt(firstNonSpace + 2) == ' ') ? 3 : 2;
+            editor.getText().delete(line, firstNonSpace, line, firstNonSpace + deleteCount);
+        } else {
+            editor.getText().insert(line, firstNonSpace, "// ");
+        }
+    }
+
+    private void updateCursorPositionStatus() {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        CodeEditor editor = getActiveEditor();
+        int line = editor.getCursor().getLeftLine() + 1;
+        int col = editor.getCursor().getLeftColumn() + 1;
+        int lineCount = editor.getLineCount();
+        String ext = currentFile != null ? extensionLabel(currentFile) : "TEXT";
+        String fileName = currentFile != null ? currentFile.getName() : "";
+        binding.studioStatus.setText(
+                fileName + " | Ln " + line + ", Col " + col + " | " + lineCount + " lines | " + ext
+        );
+    }
+
+    private void updateUnsavedStatusForActiveTab() {
+        OpenFileTab tab = findOpenTab(currentFile);
+        if (tab != null) {
+            tab.updateUnsavedIndicator();
+        }
+    }
+
+    private OpenFileTab findTabForEditor(CodeEditor editor) {
+        if (editor == null) {
+            return null;
+        }
+        for (OpenFileTab tab : openFileTabs) {
+            if (tab.editor == editor) {
+                return tab;
+            }
+        }
+        return null;
+    }
+
+    private View createTabView(OpenFileTab openFileTab) {
+        ItemStudioFileTabBinding tabBinding = ItemStudioFileTabBinding.inflate(getLayoutInflater());
+        openFileTab.tabBinding = tabBinding;
+        tabBinding.tabFileName.setText(openFileTab.file.getName());
+        tabBinding.tabFileIcon.setImageResource(iconFor(openFileTab.file, false));
+        tabBinding.tabFileIcon.setImageTintList(ColorStateList.valueOf(iconColorFor(openFileTab.file, false)));
+        tabBinding.tabUnsavedDot.setVisibility(openFileTab.isModified() ? View.VISIBLE : View.GONE);
+
+        tabBinding.tabCloseBtn.setOnClickListener(v -> closeTabPrompt(openFileTab));
+
+        tabBinding.getRoot().setOnClickListener(v -> {
+            int idx = openFileTabs.indexOf(openFileTab);
+            if (idx >= 0) {
+                switchToOpenTab(idx, true);
+            }
+        });
+
+        tabBinding.getRoot().setOnLongClickListener(v -> {
+            showTabContextMenu(openFileTab);
+            return true;
+        });
+
+        return tabBinding.getRoot();
+    }
+
+    private void showTabContextMenu(OpenFileTab tab) {
+        if (tab == null) {
+            return;
+        }
+        String[] options = {
+                getString(R.string.studio_action_save),
+                getString(R.string.studio_close_tab),
+                getString(R.string.studio_close_other_tabs),
+                getString(R.string.studio_close_all_tabs)
+        };
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(tab.file.getName())
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        saveFileTab(tab, true);
+                    } else if (which == 1) {
+                        closeTabPrompt(tab);
+                    } else if (which == 2) {
+                        closeOtherTabs(tab);
+                    } else if (which == 3) {
+                        closeAllTabsPrompt();
+                    }
+                })
+                .show();
+    }
+
+    private void closeOtherTabs(OpenFileTab keepTab) {
+        List<OpenFileTab> toClose = new ArrayList<>();
+        for (OpenFileTab tab : openFileTabs) {
+            if (tab != keepTab) {
+                toClose.add(tab);
+            }
+        }
+        for (OpenFileTab tab : toClose) {
+            if (tab.isModified()) {
+                saveFileTab(tab, false);
+            }
+            closeTabDirectly(tab);
+        }
+    }
+
+    private void closeAllTabsPrompt() {
+        boolean anyModified = false;
+        for (OpenFileTab tab : openFileTabs) {
+            if (tab.isModified()) {
+                anyModified = true;
+                break;
+            }
+        }
+        if (anyModified) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.studio_close_all_tabs)
+                    .setMessage(R.string.studio_layout_editor_unsaved)
+                    .setPositiveButton(R.string.studio_action_save, (dialog, which) -> {
+                        for (OpenFileTab tab : new ArrayList<>(openFileTabs)) {
+                            saveFileTab(tab, false);
+                            closeTabDirectly(tab);
+                        }
+                    })
+                    .setNegativeButton(R.string.common_word_discard, (dialog, which) -> {
+                        for (OpenFileTab tab : new ArrayList<>(openFileTabs)) {
+                            closeTabDirectly(tab);
+                        }
+                    })
+                    .setNeutralButton(R.string.common_word_cancel, null)
+                    .show();
+        } else {
+            for (OpenFileTab tab : new ArrayList<>(openFileTabs)) {
+                closeTabDirectly(tab);
+            }
+        }
+    }
+
+    private void closeTabPrompt(OpenFileTab tab) {
+        if (tab == null) {
+            return;
+        }
+        if (tab.isModified()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(tab.file.getName())
+                    .setMessage(getString(R.string.studio_unsaved_changes_message, tab.file.getName()))
+                    .setPositiveButton(R.string.studio_action_save, (dialog, which) -> {
+                        saveFileTab(tab, true);
+                        closeTabDirectly(tab);
+                    })
+                    .setNegativeButton(R.string.common_word_discard, (dialog, which) -> closeTabDirectly(tab))
+                    .setNeutralButton(R.string.common_word_cancel, null)
+                    .show();
+        } else {
+            closeTabDirectly(tab);
+        }
+    }
+
+    private void closeTabDirectly(OpenFileTab tab) {
+        if (tab == null) {
+            return;
+        }
+        int index = openFileTabs.indexOf(tab);
+        if (index < 0) {
+            return;
+        }
+
+        openFileTabs.remove(index);
+        if (binding.studioFileTabs.getTabCount() > index) {
+            binding.studioFileTabs.removeTabAt(index);
+        }
+
+        if (tab.editor != binding.studioEditor) {
+            binding.studioEditorStack.removeView(tab.editor);
+            tab.editor.release();
+        } else {
+            binding.studioEditor.setText("");
+            binding.studioEditor.setVisibility(View.GONE);
+        }
+
+        if (openFileTabs.isEmpty()) {
+            currentFile = null;
+            currentFileEditable = false;
+            lastSavedContent = "";
+            activeEditor = binding.studioEditor;
+            binding.studioFileTabs.setVisibility(View.GONE);
+            updateFileHeader(null);
+            updateStage();
+            updateStatus(getString(R.string.studio_no_file_title));
+            fileTreeAdapter.notifyDataSetChanged();
+        } else {
+            int nextIndex = Math.min(index, openFileTabs.size() - 1);
+            switchToOpenTab(nextIndex, false);
+        }
+    }
+
+    private boolean saveFileTab(OpenFileTab tab, boolean showToast) {
+        if (tab == null || tab.file == null) {
+            return false;
+        }
+        try {
+            if (!isInsideProject(tab.file)) {
+                throw new IOException("File is outside the project root");
+            }
+            String content = tab.editor.getText().toString();
+            Files.write(tab.file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+            tab.lastSavedContent = content;
+            if (currentFile != null && canonicalPath(currentFile).equals(canonicalPath(tab.file))) {
+                lastSavedContent = content;
+            }
+            tab.updateUnsavedIndicator();
+            updateStatus(relativePath(tab.file) + " - saved");
+            setOutput("Saved " + relativePath(tab.file), false);
+            if (showToast) {
+                SketchwareUtil.toast(getString(R.string.studio_saved));
+            }
+            return true;
+        } catch (Exception e) {
+            setOutput(getString(R.string.studio_save_failed) + ": " + e.getMessage(), true);
+            if (showToast) {
+                SketchwareUtil.toast(getString(R.string.studio_save_failed));
+            }
+            return false;
+        }
+    }
+
+    private boolean hasAnyUnsavedChanges() {
+        for (OpenFileTab tab : openFileTabs) {
+            if (tab.isModified()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void setupOutputPanel() {
@@ -713,6 +1079,16 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         SrcCodeEditor.loadCESettings(this, editor, "studio", true);
         applyDefaultEditorTheme(editor);
         applyEditorPreferenceState(editor);
+        editor.subscribeEvent(ContentChangeEvent.class, (event, unsubscribe) -> {
+            OpenFileTab tab = findTabForEditor(editor);
+            if (tab != null) {
+                tab.updateUnsavedIndicator();
+            }
+            updateCursorPositionStatus();
+        });
+        editor.subscribeEvent(SelectionChangeEvent.class, (event, unsubscribe) -> {
+            updateCursorPositionStatus();
+        });
     }
 
     private CodeEditor getActiveEditor() {
@@ -1200,6 +1576,18 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         fileTreeAdapter = new FileTreeAdapter();
         binding.studioFileTree.setLayoutManager(new LinearLayoutManager(this));
         binding.studioFileTree.setAdapter(fileTreeAdapter);
+        binding.btnTreeNewFile.setOnClickListener(v -> showCreateFileDialog());
+        binding.btnTreeNewFolder.setOnClickListener(v -> showCreateFolderDialog());
+        binding.btnTreeCollapseAll.setOnClickListener(v -> {
+            expandedDirs.clear();
+            expandDirectory(projectRoot);
+            rebuildVisibleNodes();
+            SketchwareUtil.toast(getString(R.string.studio_collapse_all_folders));
+        });
+        binding.btnTreeRefresh.setOnClickListener(v -> {
+            rebuildVisibleNodes();
+            SketchwareUtil.toast(getString(R.string.studio_refresh_tree));
+        });
         binding.studioFileSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -1430,10 +1818,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             applyLanguage(file);
             OpenFileTab openFileTab = new OpenFileTab(file, editor, content);
             openFileTabs.add(openFileTab);
-            TabLayout.Tab tab = binding.studioFileTabs.newTab()
-                    .setText(file.getName())
-                    .setIcon(iconFor(file, false));
+            TabLayout.Tab tab = binding.studioFileTabs.newTab();
+            tab.setCustomView(createTabView(openFileTab));
             binding.studioFileTabs.addTab(tab, false);
+            binding.studioFileTabs.setVisibility(View.VISIBLE);
             switchToOpenTab(openFileTabs.size() - 1, false);
             updateFileHeader(file);
             showEditor();
@@ -1443,7 +1831,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             }
 
             setOutput("Opened " + relativePath(file) + " (" + formatBytes(file.length()) + ")", false);
-            updateStatus(relativePath(file) + " - " + countLines(content) + " lines");
+            updateCursorPositionStatus();
             logStudioAction("open_file");
 
             fileTreeAdapter.notifyDataSetChanged();
@@ -1502,10 +1890,19 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
 
         OpenFileTab tab = openFileTabs.get(index);
-        for (OpenFileTab openFileTab : openFileTabs) {
-            openFileTab.editor.setVisibility(View.GONE);
+        for (int i = 0; i < openFileTabs.size(); i++) {
+            OpenFileTab openFileTab = openFileTabs.get(i);
+            boolean isTarget = (i == index);
+            openFileTab.editor.setVisibility(isTarget ? View.VISIBLE : View.GONE);
+            if (openFileTab.tabBinding != null) {
+                openFileTab.tabBinding.getRoot().setSelected(isTarget);
+                openFileTab.tabBinding.tabFileName.setTextColor(getResources().getColor(
+                        isTarget ? R.color.studio_text_primary : R.color.studio_text_secondary,
+                        getTheme()
+                ));
+                openFileTab.tabBinding.getRoot().setAlpha(isTarget ? 1.0f : 0.7f);
+            }
         }
-        tab.editor.setVisibility(View.VISIBLE);
 
         activeEditor = tab.editor;
         currentFile = tab.file;
@@ -1515,7 +1912,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         showingImage = false;
 
         updateFileHeader(tab.file);
-        updateStatus(relativePath(tab.file) + " - " + countLines(tab.editor.getText().toString()) + " lines");
+        updateCursorPositionStatus();
 
         if (binding.studioFileTabs.getTabCount() > index
                 && binding.studioFileTabs.getSelectedTabPosition() != index) {
@@ -1748,20 +2145,87 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             setOutput(getString(R.string.studio_file_not_editable), true);
             return;
         }
-        if (!currentFile.getName().toLowerCase(Locale.US).endsWith(".xml")) {
-            setOutput(getString(R.string.studio_no_xml_preview), true);
-            return;
-        }
+        String fileName = currentFile.getName().toLowerCase(Locale.US);
+        String rawCode = getActiveEditor().getText().toString();
         try {
-            String formatted = SrcCodeEditor.prettifyXml(getActiveEditor().getText().toString(), 4, null);
-            if (formatted == null) {
-                throw new IOException("XML formatter returned no result");
+            String formatted = null;
+            if (fileName.endsWith(".xml")) {
+                formatted = SrcCodeEditor.prettifyXml(rawCode, 4, null);
+            } else if (fileName.endsWith(".java")) {
+                try {
+                    formatted = Lx.j(rawCode, true);
+                } catch (Exception fallback) {
+                    formatted = formatGenericCode(rawCode);
+                }
+            } else if (fileName.endsWith(".kt") || fileName.endsWith(".kts")
+                    || fileName.endsWith(".gradle") || fileName.endsWith(".json")
+                    || fileName.endsWith(".properties") || fileName.endsWith(".js")
+                    || fileName.endsWith(".ts")) {
+                formatted = formatGenericCode(rawCode);
+            } else {
+                formatted = formatGenericCode(rawCode);
             }
-            getActiveEditor().setText(formatted);
-            updateStatus(relativePath(currentFile) + " - formatted");
+
+            if (formatted != null && !formatted.equals(rawCode)) {
+                getActiveEditor().setText(formatted);
+                updateStatus(relativePath(currentFile) + " - formatted");
+                updateUnsavedStatusForActiveTab();
+                updateCursorPositionStatus();
+                setOutput("Formatted " + relativePath(currentFile), false);
+            } else {
+                updateStatus(relativePath(currentFile) + " - already formatted");
+            }
         } catch (Exception e) {
             setOutput(getString(R.string.studio_format_failed) + ": " + e.getMessage(), true);
         }
+    }
+
+    private String formatGenericCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return code;
+        }
+        String[] lines = code.split("\\r?\\n");
+        StringBuilder result = new StringBuilder();
+        int indentLevel = 0;
+        boolean prevBlank = false;
+
+        for (String rawLine : lines) {
+            String trimmed = rawLine.trim();
+            if (trimmed.isEmpty()) {
+                if (!prevBlank && result.length() > 0) {
+                    result.append('\n');
+                    prevBlank = true;
+                }
+                continue;
+            }
+            prevBlank = false;
+
+            int leadingClosings = 0;
+            for (int i = 0; i < trimmed.length(); i++) {
+                char c = trimmed.charAt(i);
+                if (c == '}' || c == ')' || c == ']') {
+                    leadingClosings++;
+                } else if (!Character.isWhitespace(c)) {
+                    break;
+                }
+            }
+
+            int currentIndent = Math.max(0, indentLevel - leadingClosings);
+            for (int i = 0; i < currentIndent; i++) {
+                result.append("    ");
+            }
+            result.append(trimmed).append('\n');
+
+            for (int i = 0; i < trimmed.length(); i++) {
+                char c = trimmed.charAt(i);
+                if (c == '{' || c == '(' || c == '[') {
+                    indentLevel++;
+                } else if (c == '}' || c == ')' || c == ']') {
+                    indentLevel = Math.max(0, indentLevel - 1);
+                }
+            }
+        }
+        return result.toString();
     }
 
     private void buildProject() {
@@ -2237,6 +2701,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
         binding.studioEditorStack.setVisibility(showCode ? View.VISIBLE : View.GONE);
         binding.studioFileTabs.setVisibility(openFileTabs.isEmpty() ? View.GONE : View.VISIBLE);
+        binding.studioSymbolBar.setVisibility(showCode ? View.VISIBLE : View.GONE);
         binding.studioImagePreviewContainer.setVisibility(showImage ? View.VISIBLE : View.GONE);
         binding.studioEmptyState.setVisibility(showEmpty ? View.VISIBLE : View.GONE);
         if (!showCode && binding.studioSearchReplacePanel.getVisibility() == View.VISIBLE) {
@@ -2269,7 +2734,14 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     }
 
     private boolean hasUnsavedChanges() {
-        return currentFileEditable && currentFile != null && !lastSavedContent.equals(getActiveEditor().getText().toString());
+        if (currentFileEditable && currentFile != null) {
+            OpenFileTab tab = findOpenTab(currentFile);
+            if (tab != null) {
+                return tab.isModified();
+            }
+            return !lastSavedContent.equals(getActiveEditor().getText().toString());
+        }
+        return false;
     }
 
     private void showCompileErrorGuide() {
@@ -2656,6 +3128,24 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 .show();
     }
 
+    private void showCreateFolderDialog() {
+        File directory = getTargetDirectory();
+        EditText input = createDialogInput(getString(R.string.studio_action_new_folder));
+        new MaterialAlertDialogBuilder(this)
+                .setIcon(R.drawable.ic_mtrl_folder)
+                .setTitle(getString(R.string.studio_action_new_folder) + "\n" + relativePath(directory))
+                .setView(input)
+                .setPositiveButton(R.string.common_word_create, (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        return;
+                    }
+                    createFolderIn(directory, name);
+                })
+                .setNegativeButton(R.string.common_word_cancel, null)
+                .show();
+    }
+
     private void showRenameDialog() {
         File target = getSelectedTarget();
         if (target == null || target.equals(projectRoot)) {
@@ -2802,6 +3292,28 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return target.isDirectory() ? target : target.getParentFile();
     }
 
+    private void createFolderIn(File parent, String folderName) {
+        try {
+            if (parent == null || !parent.isDirectory()) {
+                parent = projectRoot;
+            }
+            File newFolder = new File(parent, folderName);
+            if (!isInsideProject(newFolder)) {
+                throw new IOException("Folder is outside project root");
+            }
+            if (!newFolder.exists() && !newFolder.mkdirs()) {
+                throw new IOException("Could not create folder: " + newFolder.getAbsolutePath());
+            }
+            selectedNodeFile = newFolder;
+            expandDirectory(parent);
+            expandDirectory(newFolder);
+            rebuildVisibleNodes();
+            SketchwareUtil.toast(getString(R.string.studio_folder_created));
+        } catch (Exception e) {
+            setOutput(getString(R.string.studio_create_failed) + ": " + e.getMessage(), true);
+        }
+    }
+
     private void createFileIn(File directory, String name, String content) {
         try {
             if (directory == null || !directory.isDirectory()) {
@@ -2816,7 +3328,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 parent.mkdirs();
             }
             if (!target.exists()) {
-                Files.write(target.toPath(), content.getBytes(StandardCharsets.UTF_8));
+                String initialContent = content;
+                if (initialContent == null || initialContent.isEmpty()) {
+                    initialContent = generateSmartBoilerplate(target);
+                }
+                Files.write(target.toPath(), initialContent.getBytes(StandardCharsets.UTF_8));
             }
             selectedNodeFile = target;
             expandDirectory(target.getParentFile());
@@ -2827,6 +3343,93 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         } catch (Exception e) {
             setOutput(getString(R.string.studio_create_failed) + ": " + e.getMessage(), true);
         }
+    }
+
+    private String generateSmartBoilerplate(File file) {
+        if (file == null) {
+            return "";
+        }
+        String name = file.getName();
+        String lowerName = name.toLowerCase(Locale.US);
+        String relPath = relativePath(file).replace('\\', '/');
+
+        String packageName = detectPackageName(file);
+
+        if (lowerName.endsWith(".java")) {
+            String className = name.substring(0, name.length() - 5);
+            StringBuilder sb = new StringBuilder();
+            if (!packageName.isEmpty()) {
+                sb.append("package ").append(packageName).append(";\n\n");
+            }
+            sb.append("public class ").append(className).append(" {\n\n");
+            sb.append("}\n");
+            return sb.toString();
+        }
+
+        if (lowerName.endsWith(".kt")) {
+            String className = name.substring(0, name.length() - 3);
+            StringBuilder sb = new StringBuilder();
+            if (!packageName.isEmpty()) {
+                sb.append("package ").append(packageName).append("\n\n");
+            }
+            sb.append("class ").append(className).append(" {\n\n");
+            sb.append("}\n");
+            return sb.toString();
+        }
+
+        if (lowerName.endsWith(".xml")) {
+            if (relPath.contains("/res/layout/")) {
+                return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                        + "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n"
+                        + "    android:layout_width=\"match_parent\"\n"
+                        + "    android:layout_height=\"match_parent\"\n"
+                        + "    android:orientation=\"vertical\">\n\n"
+                        + "</LinearLayout>\n";
+            }
+            if (relPath.contains("/res/values/")) {
+                return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                        + "<resources>\n\n"
+                        + "</resources>\n";
+            }
+            if (relPath.contains("/res/drawable/")) {
+                return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                        + "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\">\n"
+                        + "    <solid android:color=\"@color/colorPrimary\" />\n"
+                        + "    <corners android:radius=\"12dp\" />\n"
+                        + "</shape>\n";
+            }
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+        }
+
+        if (lowerName.endsWith(".json")) {
+            return "{\n\n}\n";
+        }
+
+        return "";
+    }
+
+    private String detectPackageName(File file) {
+        if (file == null || projectRoot == null) {
+            return "";
+        }
+        String rel = relativePath(file).replace('\\', '/');
+        String prefixJava = "app/src/main/java/";
+        String prefixKotlin = "app/src/main/kotlin/";
+        String sub = null;
+        if (rel.startsWith(prefixJava)) {
+            sub = rel.substring(prefixJava.length());
+        } else if (rel.startsWith(prefixKotlin)) {
+            sub = rel.substring(prefixKotlin.length());
+        }
+        if (sub == null) {
+            return "";
+        }
+        int lastSlash = sub.lastIndexOf('/');
+        if (lastSlash <= 0) {
+            return "";
+        }
+        String dirPath = sub.substring(0, lastSlash);
+        return dirPath.replace('/', '.');
     }
 
     private void createResource(int type, String rawName) {
@@ -2901,8 +3504,20 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             if (target == null || !isInsideProject(target)) {
                 return;
             }
+            String targetPath = canonicalPath(target);
+            List<OpenFileTab> tabsToClose = new ArrayList<>();
+            for (OpenFileTab tab : openFileTabs) {
+                String tabPath = canonicalPath(tab.file);
+                if (tabPath.equals(targetPath) || tabPath.startsWith(targetPath + File.separator)) {
+                    tabsToClose.add(tab);
+                }
+            }
+            for (OpenFileTab toClose : tabsToClose) {
+                closeTabDirectly(toClose);
+            }
+
             FileUtil.deleteFile(target.getAbsolutePath());
-            if (currentFile != null && canonicalPath(currentFile).equals(canonicalPath(target))) {
+            if (currentFile != null && canonicalPath(currentFile).equals(targetPath)) {
                 currentFile = null;
                 currentFileEditable = false;
                 selectedNodeFile = projectRoot;
@@ -3418,6 +4033,23 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         if (collapseOutputPanel()) {
             return;
         }
+        if (hasAnyUnsavedChanges()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.common_word_warning)
+                    .setMessage(R.string.src_code_editor_unsaved_changes_dialog_warning_message)
+                    .setPositiveButton(R.string.studio_action_save, (dialog, which) -> {
+                        for (OpenFileTab tab : openFileTabs) {
+                            if (tab.isModified()) {
+                                saveFileTab(tab, false);
+                            }
+                        }
+                        finish();
+                    })
+                    .setNegativeButton(R.string.common_word_exit, (dialog, which) -> finish())
+                    .setNeutralButton(R.string.common_word_cancel, null)
+                    .show();
+            return;
+        }
         closeAfterSave();
     }
 
@@ -3496,6 +4128,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         addSheetAction(sheet, dialog, R.drawable.ic_mtrl_add, R.string.studio_action_new_file, true, () -> {
             selectedNodeFile = target.isDirectory() ? target : target.getParentFile();
             showCreateFileDialog();
+        });
+        addSheetAction(sheet, dialog, R.drawable.ic_mtrl_folder, R.string.studio_action_new_folder, true, () -> {
+            selectedNodeFile = target.isDirectory() ? target : target.getParentFile();
+            showCreateFolderDialog();
         });
         addSheetAction(sheet, dialog, R.drawable.ic_mtrl_edit, R.string.studio_action_rename, !target.equals(projectRoot), this::showRenameDialog);
         addSheetAction(sheet, dialog, R.drawable.ic_mtrl_delete, R.string.studio_action_delete, !target.equals(projectRoot), this::showDeleteDialog);
@@ -3739,11 +4375,22 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         private final File file;
         private final CodeEditor editor;
         private String lastSavedContent;
+        private ItemStudioFileTabBinding tabBinding;
 
         private OpenFileTab(File file, CodeEditor editor, String lastSavedContent) {
             this.file = file;
             this.editor = editor;
             this.lastSavedContent = lastSavedContent;
+        }
+
+        private boolean isModified() {
+            return editor != null && !Objects.equals(editor.getText().toString(), lastSavedContent);
+        }
+
+        private void updateUnsavedIndicator() {
+            if (tabBinding != null) {
+                tabBinding.tabUnsavedDot.setVisibility(isModified() ? View.VISIBLE : View.GONE);
+            }
         }
     }
 
