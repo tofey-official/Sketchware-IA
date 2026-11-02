@@ -98,6 +98,13 @@ import pro.sketchware.R;
 import pro.sketchware.databinding.ActivityAndroidStudioProjectBinding;
 import pro.sketchware.databinding.ItemStudioFileTabBinding;
 import pro.sketchware.databinding.ItemStudioFileTreeBinding;
+import android.annotation.SuppressLint;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import a.a.a.yB;
+import pro.sketchware.activities.studio.model.FlutterAppBundler;
+import pro.sketchware.activities.studio.model.StudioLanguageConfigurer;
 import pro.sketchware.utility.EditorUtils;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
@@ -1623,13 +1630,17 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
         expandedDirs.clear();
         expandDirectory(projectRoot);
-        expandDirectory(new File(projectRoot, "app"));
-        expandDirectory(new File(projectRoot, "app/src"));
-        expandDirectory(new File(projectRoot, "app/src/main"));
-        expandDirectory(new File(projectRoot, "app/src/main/java"));
-        expandDirectory(new File(projectRoot, "app/src/main/kotlin"));
-        expandDirectory(new File(projectRoot, "app/src/main/res"));
-        expandDirectory(new File(projectRoot, "app/src/main/res/layout"));
+        if (isFlutterProject()) {
+            expandDirectory(new File(projectRoot, "lib"));
+        } else {
+            expandDirectory(new File(projectRoot, "app"));
+            expandDirectory(new File(projectRoot, "app/src"));
+            expandDirectory(new File(projectRoot, "app/src/main"));
+            expandDirectory(new File(projectRoot, "app/src/main/java"));
+            expandDirectory(new File(projectRoot, "app/src/main/kotlin"));
+            expandDirectory(new File(projectRoot, "app/src/main/res"));
+            expandDirectory(new File(projectRoot, "app/src/main/res/layout"));
+        }
 
         rebuildVisibleNodes();
         File initialFile = findInitialFile(projectRoot);
@@ -1695,9 +1706,21 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             }
             childList.add(child);
         }
-        childList.sort(Comparator
-                .comparing((File file) -> !file.isDirectory())
-                .thenComparing(file -> file.getName().toLowerCase(Locale.US)));
+        childList.sort((f1, f2) -> {
+            if (isFlutterProject() && directory.equals(projectRoot)) {
+                boolean isLib1 = f1.getName().equals("lib");
+                boolean isLib2 = f2.getName().equals("lib");
+                if (isLib1 != isLib2) return isLib1 ? -1 : 1;
+
+                boolean isPub1 = f1.getName().equals("pubspec.yaml");
+                boolean isPub2 = f2.getName().equals("pubspec.yaml");
+                if (isPub1 != isPub2) return isPub1 ? -1 : 1;
+            }
+            boolean d1 = f1.isDirectory();
+            boolean d2 = f2.isDirectory();
+            if (d1 != d2) return d1 ? -1 : 1;
+            return f1.getName().toLowerCase(Locale.US).compareTo(f2.getName().toLowerCase(Locale.US));
+        });
 
         for (File child : childList) {
             if (!child.isDirectory()) {
@@ -2238,7 +2261,167 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return result.toString();
     }
 
+    private boolean isFlutterProject() {
+        if (projectRoot == null) {
+            return false;
+        }
+        return new File(projectRoot, "pubspec.yaml").exists()
+                || new File(projectRoot, "lib" + File.separator + "main.dart").exists();
+    }
+
+    private void prepareFlutterProjectForBuild() throws IOException {
+        String packageName = "";
+        try {
+            HashMap<String, Object> project = lC.b(scId);
+            if (project != null) {
+                packageName = yB.c(project, "my_sc_pkg_name");
+            }
+        } catch (Exception ignored) {
+        }
+        if (packageName.isEmpty()) {
+            packageName = "com.example." + (projectName == null ? "flutterapp" : projectName.toLowerCase(Locale.US).replaceAll("[^a-z0-9_]", "_"));
+        }
+
+        File javaDir = new File(projectRoot, "app" + File.separator + "src" + File.separator + "main" + File.separator + "java");
+        File packageDir = new File(javaDir, packageName.replace('.', File.separatorChar));
+        if (!packageDir.exists()) {
+            packageDir.mkdirs();
+        }
+        File mainActivityJava = new File(packageDir, "MainActivity.java");
+        File mainActivityKt = new File(packageDir, "MainActivity.kt");
+        if (mainActivityKt.exists()) {
+            FileUtil.deleteFile(mainActivityKt.getAbsolutePath());
+        }
+
+        String hostCode = StudioLanguageConfigurer.buildFlutterHostMainActivity(packageName);
+        FileUtil.writeFile(mainActivityJava.getAbsolutePath(), hostCode);
+
+        // Delete activity_main.xml layout to prevent AAPT2 / layout conflicts in Flutter project
+        File mainLayout = new File(projectRoot, "app" + File.separator + "src" + File.separator + "main" + File.separator + "res" + File.separator + "layout" + File.separator + "activity_main.xml");
+        if (mainLayout.exists()) {
+            FileUtil.deleteFile(mainLayout.getAbsolutePath());
+        }
+
+        FlutterAppBundler.prepareFlutterAssets(projectRoot, appName != null ? appName : projectName);
+    }
+
+    private void showFlutterRunOptionsDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setIcon(R.drawable.ic_mtrl_flutter)
+                .setTitle(R.string.studio_flutter_run_dialog_title)
+                .setMessage(R.string.studio_flutter_run_dialog_subtitle)
+                .setPositiveButton(R.string.studio_flutter_option_build_apk, (dialog, which) -> startStudioBuildProcess())
+                .setNeutralButton(R.string.studio_flutter_option_live_run, (dialog, which) -> showFlutterLiveRunnerDialog())
+                .setNegativeButton(R.string.common_word_cancel, null)
+                .show();
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void showFlutterLiveRunnerDialog() {
+        try {
+            if (hasUnsavedChanges()) {
+                saveCurrentFile(false);
+            }
+            File indexHtml = FlutterAppBundler.prepareFlutterAssets(projectRoot, appName != null ? appName : projectName);
+
+            BottomSheetDialog dialog = new BottomSheetDialog(this);
+            LinearLayout layout = new LinearLayout(this);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            layout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            LinearLayout header = new LinearLayout(this);
+            header.setOrientation(LinearLayout.HORIZONTAL);
+            header.setGravity(Gravity.CENTER_VERTICAL);
+            header.setPadding(dp(16), dp(12), dp(16), dp(12));
+            header.setBackgroundColor(getResources().getColor(R.color.studio_surface_container, getTheme()));
+
+            ImageView icon = new ImageView(this);
+            icon.setImageResource(R.drawable.ic_mtrl_flutter);
+            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(24), dp(24));
+            iconParams.setMarginEnd(dp(12));
+            header.addView(icon, iconParams);
+
+            TextView title = new TextView(this);
+            title.setText(R.string.studio_flutter_live_runner_title);
+            title.setTypeface(Typeface.DEFAULT_BOLD);
+            title.setTextSize(16);
+            title.setTextColor(getResources().getColor(R.color.studio_text_primary, getTheme()));
+            LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            header.addView(title, titleParams);
+
+            TextView btnReload = new TextView(this);
+            btnReload.setText(R.string.studio_flutter_hot_reload);
+            btnReload.setTextColor(getResources().getColor(R.color.colorPrimary, getTheme()));
+            btnReload.setTypeface(Typeface.DEFAULT_BOLD);
+            btnReload.setPadding(dp(12), dp(8), dp(12), dp(8));
+            header.addView(btnReload);
+
+            layout.addView(header);
+
+            WebView webView = new WebView(this);
+            webView.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(480)));
+            WebSettings settings = webView.getSettings();
+            settings.setJavaScriptEnabled(true);
+            settings.setDomStorageEnabled(true);
+            settings.setAllowFileAccess(true);
+            settings.setAllowContentAccess(true);
+            settings.setAllowFileAccessFromFileURLs(true);
+            settings.setAllowUniversalAccessFromFileURLs(true);
+            webView.setWebChromeClient(new WebChromeClient());
+            webView.loadUrl("file://" + indexHtml.getAbsolutePath());
+
+            btnReload.setOnClickListener(v -> {
+                try {
+                    if (hasUnsavedChanges()) {
+                        saveCurrentFile(false);
+                    }
+                    FlutterAppBundler.prepareFlutterAssets(projectRoot, appName != null ? appName : projectName);
+                    webView.reload();
+                    SketchwareUtil.toast(getString(R.string.studio_flutter_hot_reload));
+                } catch (Exception e) {
+                    SketchwareUtil.toast(e.getMessage());
+                }
+            });
+
+            layout.addView(webView);
+
+            dialog.setContentView(layout);
+            dialog.setOnShowListener(shownDialog -> {
+                View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+                if (bottomSheet != null) {
+                    BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
+                    behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+            });
+            dialog.setOnDismissListener(d -> webView.destroy());
+            dialog.show();
+        } catch (Exception e) {
+            setOutput("Failed to launch Flutter Live Runner: " + e.getMessage(), true);
+            SketchwareUtil.toast("Failed to launch Flutter Live Runner");
+        }
+    }
+
     private void buildProject() {
+        if (buildRunning) {
+            return;
+        }
+        if (projectRoot == null || !projectRoot.isDirectory()) {
+            setOutput(getString(R.string.studio_project_missing), true);
+            return;
+        }
+        if (hasUnsavedChanges()) {
+            saveCurrentFile(false);
+        }
+
+        if (isFlutterProject()) {
+            showFlutterRunOptionsDialog();
+            return;
+        }
+
+        startStudioBuildProcess();
+    }
+
+    private void startStudioBuildProcess() {
         if (buildRunning) {
             return;
         }
@@ -2256,6 +2439,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
         new Thread(() -> {
             try {
+                if (isFlutterProject()) {
+                    runOnUiThread(() -> appendBuildOutput(getString(R.string.studio_flutter_packaging_assets)));
+                    prepareFlutterProjectForBuild();
+                }
                 File apk = runStudioBuild();
                 appendBuildOutput("");
                 appendBuildOutput(getString(R.string.studio_build_finished) + ": " + apk.getAbsolutePath());
@@ -3296,7 +3483,13 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
     private File getTargetDirectory() {
         File target = getSelectedTarget();
-        if (target == null) {
+        if (target == null || target.equals(projectRoot)) {
+            if (isFlutterProject()) {
+                File libDir = new File(projectRoot, "lib");
+                if (libDir.exists()) {
+                    return libDir;
+                }
+            }
             return projectRoot;
         }
         return target.isDirectory() ? target : target.getParentFile();
@@ -3364,6 +3557,20 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         String relPath = relativePath(file).replace('\\', '/');
 
         String packageName = detectPackageName(file);
+
+        if (lowerName.endsWith(".dart")) {
+            String className = toPascalCase(name.substring(0, name.length() - 5));
+            return "import 'package:flutter/material.dart';\n\n"
+                    + "class " + className + " extends StatelessWidget {\n"
+                    + "  const " + className + "({super.key});\n\n"
+                    + "  @override\n"
+                    + "  Widget build(BuildContext context) {\n"
+                    + "    return Container(\n"
+                    + "      child: const Text('" + className + "'),\n"
+                    + "    );\n"
+                    + "  }\n"
+                    + "}\n";
+        }
 
         if (lowerName.endsWith(".java")) {
             String className = name.substring(0, name.length() - 5);
@@ -3630,6 +3837,17 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private int priorityForInitialFile(File file) {
         String relative = relativePath(file).toLowerCase(Locale.US);
         String name = file.getName().toLowerCase(Locale.US);
+        if (isFlutterProject()) {
+            if (name.equals("main.dart") || relative.endsWith("/lib/main.dart")) {
+                return -100;
+            }
+            if (name.endsWith(".dart")) {
+                return -50;
+            }
+            if (name.equals("pubspec.yaml")) {
+                return -20;
+            }
+        }
         if (name.equals("mainactivity.java") || name.equals("mainactivity.kt")) {
             return 0;
         }

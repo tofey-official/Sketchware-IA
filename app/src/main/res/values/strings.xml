@@ -3517,4 +3517,14 @@ Please try again later"</string>
     <string name="lang_flutter_subtitle">Cross-platform development with Flutter &amp; Dart</string>
     <string name="studio_flutter_run_hint">Flutter project ready in lib/main.dart</string>
     <string name="myprojects_settings_language_label">Programming Language</string>
+    <string name="studio_flutter_run_dialog_title">Flutter Build &amp; Run</string>
+    <string name="studio_flutter_run_dialog_subtitle">Choose how you want to run your Flutter application</string>
+    <string name="studio_flutter_option_build_apk">Build &amp; Install APK</string>
+    <string name="studio_flutter_option_build_apk_desc">Compile standalone Android APK with on-device toolchain</string>
+    <string name="studio_flutter_option_live_run">Live Flutter Runner</string>
+    <string name="studio_flutter_option_live_run_desc">Instant interactive preview without APK install</string>
+    <string name="studio_flutter_live_runner_title">Flutter Live Runner</string>
+    <string name="studio_flutter_hot_reload">Hot Reload</string>
+    <string name="studio_flutter_packaging_assets">Packaging Flutter assets for build...</string>
 </resources>
+
