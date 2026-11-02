@@ -2034,7 +2034,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             } else if (name.endsWith(".xml")) {
                 applyXmlLanguageSafely(file);
             } else if (name.endsWith(".dart")) {
-                applyTextMateLanguageSafely(file, CodeEditorLanguages.SCOPE_NAME_DART, "Dart");
+                applyDartLanguageSafely(file);
             } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
                 applyTextMateLanguageSafely(file, CodeEditorLanguages.SCOPE_NAME_YAML, "YAML");
             } else {
@@ -2049,6 +2049,32 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             ));
         } catch (Exception ignored) {
             getActiveEditor().setEditorLanguage(new EmptyLanguage());
+        }
+    }
+
+    private void applyDartLanguageSafely(File file) {
+        try {
+            CodeEditor editor = getActiveEditor();
+            Language language = null;
+            try {
+                language = CodeEditorLanguages.loadTextMateLanguage(CodeEditorLanguages.SCOPE_NAME_DART);
+            } catch (Throwable ignored) {
+            }
+            if (language == null || language instanceof EmptyLanguage) {
+                // High-performance Dart syntax highlight fallback using C/Java lexical grammar
+                language = new JavaLanguage();
+                applyDefaultEditorTheme(editor);
+            } else {
+                applyTextMateTheme();
+            }
+            editor.setEditorLanguage(language);
+        } catch (Throwable throwable) {
+            try {
+                applyDefaultEditorTheme();
+                getActiveEditor().setEditorLanguage(new JavaLanguage());
+            } catch (Throwable fallback) {
+                getActiveEditor().setEditorLanguage(new EmptyLanguage());
+            }
         }
     }
 
@@ -2382,6 +2408,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                     SketchwareUtil.toast(getString(R.string.studio_flutter_hot_reload));
                 } catch (Exception e) {
                     SketchwareUtil.toast(e.getMessage());
+                    setOutput("[Flutter Hot Reload Error]\n" + e.getMessage(), true);
                 }
             });
 
@@ -2399,7 +2426,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             dialog.show();
         } catch (Exception e) {
             setOutput("Failed to launch Flutter Live Runner: " + e.getMessage(), true);
-            SketchwareUtil.toast("Failed to launch Flutter Live Runner");
+            SketchwareUtil.toast(e.getMessage());
         }
     }
 
@@ -2610,6 +2637,9 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     }
 
     private String describeBuildFailure(Throwable throwable) {
+        if (throwable instanceof FlutterAppBundler.DartCompilationException) {
+            return throwable.getMessage();
+        }
         if (throwable instanceof MissingFileException) {
             MissingFileException exception = (MissingFileException) throwable;
             File missingFile = exception.getMissingFile();
@@ -3840,14 +3870,23 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         String relative = relativePath(file).toLowerCase(Locale.US);
         String name = file.getName().toLowerCase(Locale.US);
         if (isFlutterProject()) {
-            if (name.equals("main.dart") || relative.endsWith("/lib/main.dart")) {
+            if (relative.equals("lib/main.dart") || relative.endsWith("/lib/main.dart")) {
+                return -500;
+            }
+            if (relative.startsWith("lib/")) {
+                return -300;
+            }
+            if (name.equals("main.dart") && !relative.contains("assets")) {
+                return -200;
+            }
+            if (name.endsWith(".dart") && !relative.contains("assets")) {
                 return -100;
             }
-            if (name.endsWith(".dart")) {
+            if (name.equals("pubspec.yaml")) {
                 return -50;
             }
-            if (name.equals("pubspec.yaml")) {
-                return -20;
+            if (relative.contains("assets/flutter")) {
+                return 1000;
             }
         }
         if (name.equals("mainactivity.java") || name.equals("mainactivity.kt")) {
@@ -3879,11 +3918,18 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return false;
         }
         String name = file.getName();
+        if (isFlutterProject()) {
+            String rel = relativePath(file).replace('\\', '/').toLowerCase(Locale.US);
+            if (rel.equals("app/src/main/assets/flutter") || rel.startsWith("app/src/main/assets/flutter/")) {
+                return true;
+            }
+        }
         return name.equals("build")
                 || name.equals(".gradle")
                 || name.equals(".git")
                 || name.equals(".idea")
-                || name.equals(".cxx");
+                || name.equals(".cxx")
+                || name.equals(".dart_tool");
     }
 
     private boolean canOpen(File file) {
