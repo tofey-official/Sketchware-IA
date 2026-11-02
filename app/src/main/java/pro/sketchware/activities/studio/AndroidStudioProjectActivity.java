@@ -2967,7 +2967,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private int priorityForInitialFile(File file) {
         String relative = relativePath(file).toLowerCase(Locale.US);
         String name = file.getName().toLowerCase(Locale.US);
-        if (name.equals("mainactivity.java")) {
+        if (name.equals("mainactivity.java") || name.equals("mainactivity.kt")) {
             return 0;
         }
         if (relative.contains("/src/main/java/") && name.endsWith(".java")) {

@@ -57,6 +57,8 @@ import pro.sketchware.R;
 import pro.sketchware.activities.studio.AndroidStudioProjectActivity;
 import pro.sketchware.control.VersionDialog;
 import pro.sketchware.databinding.MyprojectSettingBinding;
+import pro.sketchware.activities.studio.model.StudioLanguage;
+import pro.sketchware.activities.studio.model.StudioLanguageConfigurer;
 import pro.sketchware.lib.validator.AppNameValidator;
 import pro.sketchware.lib.validator.PackageNameValidator;
 import pro.sketchware.utility.AdManager;
@@ -67,6 +69,7 @@ import pro.sketchware.utility.TranslationFunction;
 public class MyProjectSettingActivity extends BaseAppCompatActivity implements View.OnClickListener {
 
     public static final String EXTRA_PROJECT_KIND = "project_kind";
+    public static final String EXTRA_PROJECT_LANGUAGE = "project_language";
     private static final String TEMPLATE_ASSET_PATH = "template_studio/androidx.zip";
     private static final String PACKAGE_NAME_PLACEHOLDER = "$package_name$";
     private static final String PROJECT_NAME_PLACEHOLDER = "$project_name$";
@@ -91,6 +94,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     private Uri pendingCropOutputUri;
     private String sc_id;
     private String projectKind = lC.PROJECT_KIND_SKETCHWARE;
+    private String projectLanguage = StudioLanguage.JAVA.getId();
     private String originalPackageName;
     private String saveError;
 
@@ -121,6 +125,9 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         sc_id = getIntent().getStringExtra("sc_id");
         updatingExistingProject = getIntent().getBooleanExtra("is_update", false);
         projectKind = normalizeProjectKind(getIntent().getStringExtra(EXTRA_PROJECT_KIND));
+        if (getIntent().hasExtra(EXTRA_PROJECT_LANGUAGE)) {
+            projectLanguage = StudioLanguage.fromId(getIntent().getStringExtra(EXTRA_PROJECT_LANGUAGE)).getId();
+        }
 
         binding.verCode.setSelected(true);
         binding.verName.setSelected(true);
@@ -175,6 +182,10 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             binding.toolbar.setTitle("Project Settings");
             HashMap<String, Object> metadata = lC.b(sc_id);
             projectKind = normalizeProjectKind(yB.c(metadata, lC.PROJECT_KIND_KEY));
+            String storedLanguage = yB.c(metadata, EXTRA_PROJECT_LANGUAGE);
+            if (storedLanguage != null && !storedLanguage.isEmpty()) {
+                projectLanguage = StudioLanguage.fromId(storedLanguage).getId();
+            }
             originalPackageName = yB.c(metadata, "my_sc_pkg_name");
             binding.etPackageName.setText(yB.c(metadata, "my_sc_pkg_name"));
             binding.etProjectName.setText(yB.c(metadata, "my_ws_name"));
@@ -226,6 +237,8 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
                 binding.appIcon.setImageURI(FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".provider", getCustomIcon()));
             }
         }
+        updateProjectLanguageCard();
+        binding.cardProjectLanguage.setOnClickListener(v -> showLanguageSelectionDialog());
         applyPackageNameLockIfNeeded();
         syncThemeColors();
         AdManager.loadBanner(this, binding.adContainer);
@@ -624,6 +637,42 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         return lC.PROJECT_KIND_SKETCHWARE;
     }
 
+    private void updateProjectLanguageCard() {
+        if (isAndroidStudioProject()) {
+            binding.cardProjectLanguage.setVisibility(View.VISIBLE);
+            StudioLanguage lang = StudioLanguage.fromId(projectLanguage);
+            binding.tvProjectLanguageName.setText(lang.getDisplayName());
+            binding.ivProjectLanguageIcon.setImageResource(lang.getIconRes());
+        } else {
+            binding.cardProjectLanguage.setVisibility(View.GONE);
+        }
+    }
+
+    private void showLanguageSelectionDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_select_project_language, null);
+        var dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.title_select_language)
+                .setView(dialogView)
+                .create();
+
+        dialogView.findViewById(R.id.lang_option_java).setOnClickListener(v -> {
+            projectLanguage = StudioLanguage.JAVA.getId();
+            updateProjectLanguageCard();
+            dialog.dismiss();
+        });
+        dialogView.findViewById(R.id.lang_option_kotlin).setOnClickListener(v -> {
+            projectLanguage = StudioLanguage.KOTLIN.getId();
+            updateProjectLanguageCard();
+            dialog.dismiss();
+        });
+        dialogView.findViewById(R.id.lang_option_both).setOnClickListener(v -> {
+            projectLanguage = StudioLanguage.BOTH.getId();
+            updateProjectLanguageCard();
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
     private boolean isAndroidStudioProject() {
         return lC.PROJECT_KIND_ANDROID_STUDIO.equals(projectKind);
     }
@@ -668,10 +717,10 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             }
         }
 
-        applyAndroidStudioTemplateValues(projectRoot, data);
+        applyAndroidStudioTemplateValues(projectRoot, data, cleanProjectFolder);
     }
 
-    private void applyAndroidStudioTemplateValues(File projectRoot, HashMap<String, Object> data) throws IOException {
+    private void applyAndroidStudioTemplateValues(File projectRoot, HashMap<String, Object> data, boolean isNewProject) throws IOException {
         String packageName = Objects.requireNonNull(data.get("my_sc_pkg_name")).toString();
         String projectName = Objects.requireNonNull(data.get("my_ws_name")).toString();
         String appName = Objects.requireNonNull(data.get("my_app_name")).toString();
@@ -721,6 +770,9 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
 
         writeAndroidStudioColors(projectRoot);
         writeAndroidStudioIcons(projectRoot);
+
+        StudioLanguage selectedLang = StudioLanguage.fromId(projectLanguage);
+        StudioLanguageConfigurer.configure(projectRoot, selectedLang, packageName, appName, isNewProject);
     }
 
     private void moveTemplatePackageDirectory(File projectRoot, String packageName) throws IOException {
@@ -950,6 +1002,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             intent.putExtra("is_new", !updatingExistingProject);
             intent.putExtra("index", intent.getIntExtra("index", -1));
             intent.putExtra(EXTRA_PROJECT_KIND, projectKind);
+            intent.putExtra(EXTRA_PROJECT_LANGUAGE, projectLanguage);
             setResult(RESULT_OK, intent);
             if (isAndroidStudioProject()) {
                 openAndroidStudioProjectEditor();
@@ -981,6 +1034,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
                     try {
                         createAndroidStudioProjectFromTemplate(data, false);
                         data.put("studio_path", wq.getAndroidStudioProjectPath(sc_id));
+                        data.put(EXTRA_PROJECT_LANGUAGE, projectLanguage);
                         lC.b(sc_id, data);
                     } catch (Exception e) {
                         saveError = "Falha ao configurar o projeto Android Studio: " + e.getMessage();
@@ -1003,6 +1057,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
                     try {
                         createAndroidStudioProjectFromTemplate(data, true);
                         data.put("studio_path", wq.getAndroidStudioProjectPath(sc_id));
+                        data.put(EXTRA_PROJECT_LANGUAGE, projectLanguage);
                         lC.saveAndroidStudioProject(sc_id, data);
                     } catch (Exception e) {
                         saveError = "Falha ao criar o projeto Android Studio: " + e.getMessage();

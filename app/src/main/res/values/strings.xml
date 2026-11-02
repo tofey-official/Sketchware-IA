@@ -3493,4 +3493,15 @@ Please try again later"</string>
     <string name="axion_no_providers_available">No providers are available for your plan.</string>
     <string name="axion_search_models">Search models…</string>
     <string name="axion_search_providers">Search providers…</string>
+
+    <!-- Studio Project Language Selection -->
+    <string name="title_select_language">Select Programming Language</string>
+    <string name="subtitle_select_language">Choose the programming language for your Android Studio project</string>
+    <string name="lang_java_title">Java</string>
+    <string name="lang_java_subtitle">Classic Android development with Java</string>
+    <string name="lang_kotlin_title">Kotlin</string>
+    <string name="lang_kotlin_subtitle">Modern Android development with Kotlin</string>
+    <string name="lang_both_title">Java &amp; Kotlin</string>
+    <string name="lang_both_subtitle">Support both Java and Kotlin in the project</string>
+    <string name="myprojects_settings_language_label">Programming Language</string>
 </resources>

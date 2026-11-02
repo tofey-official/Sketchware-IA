@@ -46,6 +46,7 @@ import mod.hey.studios.project.ProjectTracker;
 import mod.hey.studios.project.backup.BackupRestoreManager;
 import pro.sketchware.R;
 import pro.sketchware.activities.main.activities.MainActivity;
+import pro.sketchware.activities.studio.model.StudioLanguage;
 import pro.sketchware.databinding.MyprojectsBinding;
 import pro.sketchware.databinding.SortProjectDialogBinding;
 import pro.sketchware.utility.AdManager;
@@ -127,9 +128,16 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
     }
 
     public void toProjectSettingsActivity(String projectKind) {
+        toProjectSettingsActivity(projectKind, null);
+    }
+
+    public void toProjectSettingsActivity(String projectKind, StudioLanguage language) {
         Intent intent = new Intent(getActivity(), MyProjectSettingActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra(MyProjectSettingActivity.EXTRA_PROJECT_KIND, projectKind);
+        if (language != null) {
+            intent.putExtra(MyProjectSettingActivity.EXTRA_PROJECT_LANGUAGE, language.getId());
+        }
         openProjectSettings.launch(intent);
     }
 
@@ -232,7 +240,29 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
         });
         dialogView.findViewById(R.id.project_type_android_studio).setOnClickListener(v -> {
             dialog.dismiss();
-            toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO);
+            showStudioLanguageDialog();
+        });
+        dialog.show();
+    }
+
+    private void showStudioLanguageDialog() {
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_select_project_language, null);
+        var dialog = new MaterialAlertDialogBuilder(requireActivity())
+                .setTitle(R.string.title_select_language)
+                .setView(dialogView)
+                .create();
+
+        dialogView.findViewById(R.id.lang_option_java).setOnClickListener(v -> {
+            dialog.dismiss();
+            toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO, StudioLanguage.JAVA);
+        });
+        dialogView.findViewById(R.id.lang_option_kotlin).setOnClickListener(v -> {
+            dialog.dismiss();
+            toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO, StudioLanguage.KOTLIN);
+        });
+        dialogView.findViewById(R.id.lang_option_both).setOnClickListener(v -> {
+            dialog.dismiss();
+            toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO, StudioLanguage.BOTH);
         });
         dialog.show();
     }
