@@ -39,6 +39,8 @@ public class CompileErrorSaver {
     public void writeLogsToFile(String errorText) {
         if (logFileExists()) FileUtil.deleteFile(path);
         FileUtil.writeFile(path, errorText);
+        // Sumer Error Hub: إرسال خطأ بناء المشروع إلى لوحة المطور
+        pro.sketchware.errorhub.ErrorHub.reportBuildError(sc_id, errorText);
     }
 
     /**

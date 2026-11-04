@@ -374,6 +374,8 @@ public class Jx {
             sb.append("@Override").append(EOL);
             sb.append("protected void onCreate(Bundle _savedInstanceState) {").append(EOL);
             sb.append("super.onCreate(_savedInstanceState);").append(EOL);
+            // Sumer Error Hub: تفعيل رصد الكراشات في التطبيق المبني
+            sb.append("ErrorReporter.initialize(this);").append(EOL);
 
             if (isViewBindingEnabled) {
                 sb.append("binding = ").append(bindingName).append(".inflate(getLayoutInflater());").append(EOL);

@@ -888,6 +888,12 @@ public class yq {
                     Lx.e(packageName)));
         }
 
+        // Sumer Error Hub: يرصد الكراشات وأخطاء التشغيل داخل التطبيق المبني ويرسلها للوحة المطور
+        if (!javaFiles.contains(new File(javaDir + "ErrorReporter.java"))) {
+            srcCodeBeans.add(new SrcCodeBean("ErrorReporter.java",
+                    pro.sketchware.errorhub.AppErrorReporterSource.generate(packageName)));
+        }
+
         if (!javaFiles.contains(new File(javaDir + "RequestNetwork.java")) && N.isHttp3Used) {
             srcCodeBeans.add(new SrcCodeBean("RequestNetwork.java",
                     Lx.j(Lx.h(packageName), false)));

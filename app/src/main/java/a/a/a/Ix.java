@@ -182,6 +182,9 @@ public class Ix {
 
         a.addAttribute("", "package", c.packageName);
 
+        // Sumer Error Hub: صلاحية INTERNET مطلوبة لإرسال تقارير الأخطاء والكراشات من التطبيق المبني
+        writePermission(a, Manifest.permission.INTERNET);
+
         if (!c.hasPermissions()) {
             if (c.hasPermission(jq.PERMISSION_CALL_PHONE)) {
                 writePermission(a, Manifest.permission.CALL_PHONE);
