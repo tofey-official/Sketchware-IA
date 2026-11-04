@@ -44,7 +44,7 @@ public class FlutterCompiler {
         yq workspace = builder.yq;
 
         receiver.onProgress("Dart: التأكد من أداة التجميع الحقيقية (أول مرة: تحميل الأداة)...", 11);
-        File toolchain = DartToolchainManager.ensureToolchain();
+        File toolchain = DartToolchainManager.ensureToolchain(receiver);
 
         File assetsDir = new File(workspace.assetsPath != null
                 ? workspace.assetsPath
