@@ -11,8 +11,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import a.a.a.KB;
-import a.a.a.SketchApplication;
 import mod.jbk.util.LogUtil;
+import pro.sketchware.SketchApplication;
 import pro.sketchware.utility.FileUtil;
 
 /**

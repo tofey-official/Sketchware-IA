@@ -106,14 +106,53 @@ def download_and_extract(packages, name, workdir):
 
 
 def find_dart_sdk_root(extract_dir):
+    """The real dart-sdk root contains bin/dart AND a 'version' file
+    (Termux also installs a dart launcher into the prefix bin/, so we must
+    not pick the prefix itself)."""
     hits = []
     for root, dirs, files in os.walk(extract_dir):
         if "dart" in files and os.path.basename(root) == "bin":
-            hits.append(os.path.dirname(root))
-    if not hits:
-        raise SystemExit("  !! could not locate dart-sdk root (bin/dart) inside deb")
-    hits.sort(key=len)  # shortest path = sdk root
-    return hits[0]
+            candidate = os.path.dirname(root)
+            score = 0
+            if os.path.isfile(os.path.join(candidate, "version")):
+                score += 2
+            if os.path.isdir(os.path.join(candidate, "lib", "_internal")):
+                score += 2
+            if score > 0:
+                hits.append((score, candidate))
+    if hits:
+        hits.sort(key=lambda t: (-t[0], len(t[1])))
+        return hits[0][1]
+    raise SystemExit("  !! could not locate dart-sdk root (bin/dart + version file) inside deb")
+
+
+TERMUX_PREFIX = "/data/data/com.termux/files/usr"
+
+
+def extract_root_of(tree_root):
+    """Walk up from tree_root to the dpkg extraction dir (x_<pkg>)."""
+    cur = tree_root
+    while True:
+        parent = os.path.dirname(cur)
+        if parent == cur or os.path.basename(parent).startswith("x_"):
+            return parent
+        cur = parent
+
+
+def materialize_absolute_symlinks(tree_root, extract_dir):
+    """Termux debs ship absolute symlinks into the termux prefix
+    (/data/data/com.termux/files/usr/...). Rewrite them to real files taken
+    from the extracted tree so the shipped sdk is fully self-contained."""
+    for root, dirs, files in os.walk(tree_root):
+        for name in files:
+            p = os.path.join(root, name)
+            if os.path.islink(p):
+                target = os.readlink(p)
+                if target.startswith(TERMUX_PREFIX + "/"):
+                    real = os.path.join(extract_dir, os.path.relpath(target, "/"))
+                    if os.path.exists(real):
+                        os.remove(p)
+                        shutil.copyfile(real, p)
 
 
 def find_shared_libs(extract_dir):
@@ -173,7 +212,8 @@ def main():
     out_sdk = os.path.join(args.out_dir, "dart-sdk")
     if os.path.exists(out_sdk):
         shutil.rmtree(out_sdk)
-    shutil.copytree(sdk_root, out_sdk)
+    shutil.copytree(sdk_root, out_sdk, symlinks=True)
+    materialize_absolute_symlinks(out_sdk, extract)
     print(f"  dart-sdk copied to {out_sdk}")
 
     if args.dartvm_out:

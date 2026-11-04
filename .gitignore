@@ -11,6 +11,8 @@
 
 # Generated files
 bin/
+!toolchain/driver/bin/
+!toolchain/driver/bin/**
 gen/
 out/
 .kotlin/
