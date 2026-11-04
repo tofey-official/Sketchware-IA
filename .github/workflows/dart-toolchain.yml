@@ -104,7 +104,7 @@ jobs:
                   if os.path.isdir(src):
                       shutil.copytree(src, dest, symlinks=True)
               p["rootUri"] = "../../" + name
-              p.pop("packageUri", None)
+              p["packageUri"] = "lib/"
           json.dump(cfg, open(cfg_path, "w"), indent=2)
           print("driver package config rewritten with relative roots")
           EOF
