@@ -134,6 +134,7 @@ jobs:
                   shutil.rmtree(dest)
               shutil.copytree(src, dest, symlinks=True)
               entries.append({"name": name, "rootUri": name,
+                              "packageUri": "lib/",
                               "languageVersion": p.get("languageVersion", "3.0")})
               print("  packaged:", name, "<-", src)
           out = {"configVersion": 2, "packages": entries,

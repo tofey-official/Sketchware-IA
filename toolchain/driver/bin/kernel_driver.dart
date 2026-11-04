@@ -7,12 +7,21 @@
 //     --target=flutter \
 //     --platform=<toolchain>/flutter_patched_sdk/platform_strong.dill \
 //     --libraries-json=<toolchain>/flutter_patched_sdk/libraries.json \
+//     --packages=<user package_config.json> \
 //     --omit-platform \
 //     --output=<assets>/flutter_assets/kernel_blob.bin \
 //     <project>/lib/main.dart
 //
-// Exit code 0 = kernel written. Compiler diagnostics go to stdout/stderr.
+// Exit code 0  = kernel written successfully.
+// Exit code 1  = compilation errors (diagnostics printed to stderr);
+//                no kernel is written in that case.
 
+import 'dart:io' show exit, stderr;
+
+import 'package:_fe_analyzer_shared/src/messages/severity.dart'
+    show CfeSeverity;
+import 'package:front_end/src/api_prototype/compiler_options.dart'
+    show CfeDiagnosticMessage;
 import 'package:front_end/src/base/compiler_context.dart' show CompilerContext;
 import 'package:front_end/src/kernel/utils.dart' show writeComponentToFile;
 import 'package:front_end/src/kernel_generator_impl.dart'
@@ -33,8 +42,34 @@ Future<void> main(List<String> arguments) async {
       if (c.options.verbose) {
         print("Sumer kernel driver: compiling ${arguments.join(' ')}");
       }
+
+      // Collect error-severity diagnostics so we can fail loudly: the CFE
+      // alone happily writes an (unusable) kernel even when errors occurred.
+      final List<String> errorLines = <String>[];
+      void Function(CfeDiagnosticMessage)? original =
+          c.options.rawOptionsForTesting.onDiagnostic;
+      c.options.rawOptionsForTesting.onDiagnostic = (CfeDiagnosticMessage m) {
+        if (m.severity == CfeSeverity.error) {
+          errorLines.addAll(m.plainTextFormatted);
+        }
+        if (original != null) {
+          original(m);
+        } else {
+          c.options.defaultDiagnosticMessageHandler(m);
+        }
+      };
+
       var result = await generateKernelInternal(c);
       Component component = result.component!;
+
+      if (errorLines.isNotEmpty) {
+        stderr.writeln("Sumer kernel driver: ${errorLines.length} error(s):");
+        for (final line in errorLines) {
+          stderr.writeln(line);
+        }
+        exit(1);
+      }
+
       if (c.options.omitPlatform) {
         component.computeCanonicalNames();
         Component userCode = new Component(
