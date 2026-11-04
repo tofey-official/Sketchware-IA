@@ -141,6 +141,35 @@ jobs:
             fi
           fi
 
+      - name: Bundle real Dart VM into APK (android-arm64 jniLib)
+        run: |
+          set -e
+          mkdir -p app/src/main/jniLibs/arm64-v8a
+          VM_OUT=app/src/main/jniLibs/arm64-v8a/libsumerdart.so
+          # Preferred: the exact VM matching the published toolchain release
+          if curl -fsSL -o /tmp/toolchain_meta.json \
+              "https://github.com/tofey-official/Sketchware-IA/releases/download/dart-toolchain/metadata.json"; then
+            DART_WANT=$(python3 -c "import json;print(json.load(open('/tmp/toolchain_meta.json')).get('dart_version',''))" 2>/dev/null || true)
+            echo "toolchain dart version: $DART_WANT"
+          else
+            DART_WANT=""
+            echo "no toolchain release yet, falling back to current Termux dart"
+          fi
+          if [ -n "$DART_WANT" ]; then
+            python3 toolchain/fetch_termux_dart.py --version-prefix "$DART_WANT" \
+              --out-dir /tmp/tdart --dartvm-out "$PWD/$VM_OUT" || \
+            echo "::warning::Termux dart $DART_WANT unavailable, trying current version"
+          fi
+          if [ ! -f "$VM_OUT" ]; then
+            python3 toolchain/fetch_termux_dart.py --version-prefix "latest" \
+              --latest --out-dir /tmp/tdart --dartvm-out "$PWD/$VM_OUT" || true
+          fi
+          if [ -f "$VM_OUT" ]; then
+            ls -la "$VM_OUT"
+          else
+            echo "::warning::Dart VM not bundled — Flutter builds will show a clear error until the toolchain release exists"
+          fi
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 

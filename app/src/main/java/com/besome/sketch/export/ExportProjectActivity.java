@@ -748,6 +748,13 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
 
                 builder.buildBuiltInLibraryInformation();
 
+                // Dart الحقيقي: قبل AAPT2 ليدخل kernel_blob.bin في أصول الـ APK
+                FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
+                if (canceled) {
+                    cancel(true);
+                    return;
+                }
+
                 publishProgress("AAPT2 is running...");
                 builder.compileResources();
                 if (canceled) {
@@ -756,11 +763,6 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                 }
 
                 KotlinCompilerBridge.compileKotlinCodeIfPossible(this, builder);
-                if (canceled) {
-                    cancel(true);
-                    return;
-                }
-                FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
                 if (canceled) {
                     cancel(true);
                     return;

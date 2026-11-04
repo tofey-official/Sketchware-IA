@@ -1,0 +1,241 @@
+name: Dart Toolchain
+
+on:
+  workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: 'Flutter SDK version (must match the flutter-embedding builtin library)'
+        required: false
+        default: '3.47.9'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Dart toolchain (android-arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Flutter SDK
+        env:
+          FLUTTER_VERSION: ${{ github.event.inputs.flutter_version || '3.47.9' }}
+        run: |
+          ARCHIVE=$(curl -s https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          want='${FLUTTER_VERSION}'
+          for r in d['releases']:
+              if r['version'].startswith(want):
+                  print(r['archive']); break
+          ")
+          if [ -z "$ARCHIVE" ]; then
+            echo "Flutter ${FLUTTER_VERSION} not found in releases index"
+            curl -s https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          for r in d['releases'][:10]: print(r['version'])"
+            exit 1
+          fi
+          echo "Archive: $ARCHIVE"
+          curl -sL -o flutter.tar.xz "https://storage.googleapis.com/flutter_infra_release/releases/$ARCHIVE"
+          tar -xf flutter.tar.xz
+
+      - name: Populate Flutter engine cache
+        run: |
+          export PATH="$PWD/flutter/bin:$PATH"
+          git config --global --add safe.directory "$PWD/flutter"
+          flutter config --no-analytics --suppress-analytics
+          flutter precache --android --suppress-analytics || true
+          if [ ! -d "flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk" ]; then
+            echo "patched sdk missing after precache, running a debug build to populate cache..."
+            flutter create --platforms=android sample
+            (cd sample && flutter build apk --debug --suppress-analytics)
+          fi
+          ls flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk
+
+      - name: Create sample app (framework package sources)
+        run: |
+          export PATH="$PWD/flutter/bin:$PATH"
+          if [ ! -d "sample" ]; then flutter create --platforms=android sample; fi
+          (cd sample && flutter pub get --suppress-analytics)
+
+      - name: Determine versions
+        run: |
+          DART_VERSION=$(head -c 200 flutter/bin/cache/dart-sdk/version | cut -d' ' -f1)
+          echo "DART_VERSION=$DART_VERSION" >> $GITHUB_ENV
+          echo "Dart version: $DART_VERSION"
+
+      - name: Vendor official CFE (front_end/kernel/vm) at Dart ${{ env.DART_VERSION }}
+        run: |
+          git clone --depth 1 --branch "$DART_VERSION" --filter=blob:none --sparse https://github.com/dart-lang/sdk dart-sdk-src
+          (cd dart-sdk-src && git sparse-checkout set pkg/front_end pkg/kernel pkg/_fe_analyzer_shared pkg/build_integration pkg/vm)
+          mkdir -p toolchain_out/driver
+          cp -r dart-sdk-src/pkg/front_end toolchain_out/front_end
+          cp -r dart-sdk-src/pkg/kernel toolchain_out/kernel
+          cp -r dart-sdk-src/pkg/_fe_analyzer_shared toolchain_out/_fe_analyzer_shared
+          cp -r dart-sdk-src/pkg/build_integration toolchain_out/build_integration
+          cp -r dart-sdk-src/pkg/vm toolchain_out/vm
+          cp -r toolchain/driver/. toolchain_out/driver/
+          python3 toolchain/patch_cfe_pubspecs.py toolchain_out
+          (cd toolchain_out/driver && "$PWD/../../flutter/bin/cache/dart-sdk/bin/dart" pub get)
+
+      - name: Rewrite driver package config to relative paths
+        run: |
+          python3 - <<'EOF'
+          import json, os, shutil
+          cfg_path = "toolchain_out/driver/.dart_tool/package_config.json"
+          cfg = json.load(open(cfg_path))
+          for p in cfg.get("packages", []):
+              name = p["name"]
+              root = p.get("rootUri", "")
+              # anything already vendored inside toolchain_out/<name> stays;
+              # anything from the pub cache gets copied in too.
+              src = None
+              if root.startswith("file://"):
+                  src = root[7:]
+              elif root.startswith("/"):
+                  src = root
+              dest = os.path.join("toolchain_out", name)
+              if src and not os.path.isdir(dest):
+                  if os.path.isdir(src):
+                      shutil.copytree(src, dest, symlinks=True)
+              p["rootUri"] = "../../" + name
+              p.pop("packageUri", None)
+          json.dump(cfg, open(cfg_path, "w"), indent=2)
+          print("driver package config rewritten with relative roots")
+          EOF
+
+      - name: Prepare Flutter framework packages for user code
+        run: |
+          python3 - <<'EOF'
+          import json, os, shutil, urllib.parse
+          sample_cfg = json.load(open("sample/.dart_tool/package_config.json"))
+          wanted = ["flutter", "sky_engine", "characters", "collection",
+                    "material_color_utilities", "meta", "vector_math"]
+          dest_dir = "toolchain_out/flutter_packages"
+          os.makedirs(dest_dir, exist_ok=True)
+          entries = []
+          by_name = {p["name"]: p for p in sample_cfg.get("packages", [])}
+          for name in wanted:
+              p = by_name.get(name)
+              if not p:
+                  print("  !! package not in sample config:", name)
+                  continue
+              root = p["rootUri"]
+              if not root.startswith("file://"):
+                  print("  !! unexpected rootUri for", name, root); continue
+              src = urllib.parse.unquote(root[7:])
+              dest = os.path.join(dest_dir, name)
+              if os.path.exists(dest):
+                  shutil.rmtree(dest)
+              shutil.copytree(src, dest, symlinks=True)
+              entries.append({"name": name, "rootUri": name,
+                              "languageVersion": p.get("languageVersion", "3.0")})
+              print("  packaged:", name, "<-", src)
+          out = {"configVersion": 2, "packages": entries,
+                 "generator": "sumer-dart-toolchain"}
+          json.dump(out, open(os.path.join(dest_dir, "package_config.json"), "w"), indent=2)
+          EOF
+
+      - name: Extract engine + patched SDK
+        run: |
+          mkdir -p toolchain_out/engine
+          cp -r flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk toolchain_out/flutter_patched_sdk
+          python3 - <<'EOF'
+          import zipfile, os
+          jar = "flutter/bin/cache/artifacts/engine/android-arm64/flutter.jar"
+          z = zipfile.ZipFile(jar)
+          for n in z.namelist():
+              if n.endswith("libflutter.so"):
+                  data = z.read(n)
+                  open("toolchain_out/engine/libflutter.so", "wb").write(data)
+                  print("engine lib extracted:", n, len(data), "bytes")
+                  break
+          EOF
+          ls -la toolchain_out/engine/ toolchain_out/flutter_patched_sdk/ | head -20
+
+      - name: Smoke test — compile real Flutter app to kernel (x64)
+        run: |
+          LIBJSON=""
+          if [ -f toolchain_out/flutter_patched_sdk/libraries.json ]; then
+            LIBJSON="--libraries-json=$PWD/toolchain_out/flutter_patched_sdk/libraries.json"
+          fi
+          flutter/bin/cache/dart-sdk/bin/dart \
+            --packages="$PWD/toolchain_out/driver/.dart_tool/package_config.json" \
+            toolchain_out/driver/bin/kernel_driver.dart \
+            --packages="$PWD/toolchain_out/flutter_packages/package_config.json" \
+            --target=flutter \
+            --platform="$PWD/toolchain_out/flutter_patched_sdk/platform_strong.dill" \
+            $LIBJSON \
+            --omit-platform \
+            --output="$PWD/sample/kernel_blob.bin" \
+            "$PWD/sample/lib/main.dart"
+          python3 - <<'EOF'
+          import os
+          sz = os.path.getsize("sample/kernel_blob.bin")
+          assert sz > 10_000, f"kernel too small: {sz}"
+          print("SMOKE OK — kernel_blob.bin:", sz, "bytes")
+          EOF
+
+      - name: Fetch Termux dart-sdk (android-arm64)
+        run: |
+          python3 toolchain/fetch_termux_dart.py \
+            --version-prefix "$DART_VERSION" \
+            --out-dir toolchain_out \
+            --dartvm-out /tmp/libsumerdart.so
+          mkdir -p toolchain_out/support
+          if [ -d toolchain_out/deps-libs ]; then
+            cp toolchain_out/deps-libs/*.so toolchain_out/support/ 2>/dev/null || true
+          fi
+
+      - name: Package toolchain zip
+        run: |
+          python3 - <<'EOF'
+          import json, os, time, zipfile
+          meta = {
+            "toolchain_version": 1,
+            "flutter_version": "${{ github.event.inputs.flutter_version || '3.47.9' }}",
+            "dart_version": open("flutter/bin/cache/dart-sdk/version").read().split()[0],
+            "engine_abi": "arm64-v8a",
+            "engine_variant": "debug-jit",
+            "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+          }
+          json.dump(meta, open("toolchain_out/metadata.json", "w"), indent=2)
+          with zipfile.ZipFile("sumer-dart-toolchain-arm64.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+              for root, dirs, files in os.walk("toolchain_out"):
+                  dirs[:] = [d for d in dirs if d != ".git"]
+                  for f in files:
+                      full = os.path.join(root, f)
+                      arc = os.path.relpath(full, "toolchain_out")
+                      z.write(full, arc)
+          print("zip size:", os.path.getsize("sumer-dart-toolchain-arm64.zip"))
+          EOF
+          ls -la sumer-dart-toolchain-arm64.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sumer-dart-toolchain-arm64
+          path: sumer-dart-toolchain-arm64.zip
+          retention-days: 14
+
+      - name: Publish to GitHub Releases (dart-toolchain)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp toolchain_out/metadata.json ./metadata.json
+          cp toolchain_out/dart-sdk/bin/dart ./libsumerdart.so
+          gh release create dart-toolchain \
+            sumer-dart-toolchain-arm64.zip metadata.json libsumerdart.so \
+            --title "Sumer Dart Toolchain (android-arm64)" \
+            --notes "Real on-device Dart/Flutter compilation toolchain.
+          Flutter: ${{ github.event.inputs.flutter_version || '3.47.9' }}
+          Dart: ${{ env.DART_VERSION }}
+          Engine: arm64-v8a debug (JIT)" \
+            --latest=false || \
+          gh release upload dart-toolchain \
+            sumer-dart-toolchain-arm64.zip metadata.json libsumerdart.so --clobber

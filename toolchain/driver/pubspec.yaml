@@ -1,0 +1,17 @@
+name: sumer_kernel_driver
+publish_to: none
+description: >
+  On-device Dart kernel compiler driver for Sumer Studio. Wraps the official
+  Dart CFE compile entry point so a plain Dart VM can produce a
+  Flutter-loadable kernel_blob.bin with --target=flutter.
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  front_end:
+    path: ../front_end
+  kernel:
+    path: ../kernel
+  build_integration:
+    path: ../build_integration
+  vm:
+    path: ../vm

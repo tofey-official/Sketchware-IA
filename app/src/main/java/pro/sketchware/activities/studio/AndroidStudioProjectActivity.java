@@ -2421,7 +2421,12 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
             webView.clearCache(true);
             webView.setWebChromeClient(new WebChromeClient());
-            webView.loadUrl("file://" + indexHtml.getAbsolutePath() + "?t=" + System.currentTimeMillis());
+            // تم إلغاء معاينة HTML المزيفة: كود Dart يُجمَّع الآن بالمترجم الحقيقي عند البناء
+            webView.loadData("<html><body style=\"font-family:sans-serif;padding:24px;direction:rtl\">"
+                    + "<h3>Dart حقيقي الآن ✔</h3>"
+                    + "<p>تم إلغاء تحويل Dart إلى HTML. كودك سيُجمَّع بالمترجم الحقيقي (Dart CFE)"
+                    + " ويعمل بمحرك Flutter الرسمي عند الضغط على Run / Build.</p></body></html>",
+                    "text/html; charset=utf-8", "UTF-8");
 
             btnReload.setOnClickListener(v -> {
                 try {
@@ -2430,7 +2435,6 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                     }
                     FlutterAppBundler.prepareFlutterAssets(projectRoot, appName != null ? appName : projectName);
                     webView.clearCache(true);
-                    webView.loadUrl("file://" + indexHtml.getAbsolutePath() + "?t=" + System.currentTimeMillis());
                     SketchwareUtil.toast(getString(R.string.studio_flutter_hot_reload));
                 } catch (Exception e) {
                     SketchwareUtil.toast(e.getMessage());
@@ -2576,6 +2580,9 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         receiver.onProgress("Extracting built-in libraries...", 3);
         BuiltInLibraries.extractCompileAssets(receiver);
 
+        // Dart الحقيقي: يُجمَّع قبل AAPT2 ليدخل kernel_blob.bin في أصول الـ APK
+        FlutterCompilerBridge.compileFlutterCodeIfPossible(receiver, builder);
+
         receiver.onProgress("AAPT2 is running...", 8);
         builder.compileResources();
 
@@ -2583,7 +2590,6 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         builder.generateViewBinding();
 
         KotlinCompilerBridge.compileKotlinCodeIfPossible(receiver, builder);
-        FlutterCompilerBridge.compileFlutterCodeIfPossible(receiver, builder);
 
         receiver.onProgress("Java is compiling...", 13);
         builder.compileJavaCode();
@@ -2664,7 +2670,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     }
 
     private String describeBuildFailure(Throwable throwable) {
-        if (throwable instanceof FlutterAppBundler.DartCompilationException) {
+        if (throwable instanceof IOException
+                && throwable.getMessage() != null
+                && throwable.getMessage().contains("فشل تجميع Dart")) {
+            // رسالة مترجم Dart الحقيقي تصل كما هي مع تفاصيل الملف والسطر
             return throwable.getMessage();
         }
         if (throwable instanceof MissingFileException) {

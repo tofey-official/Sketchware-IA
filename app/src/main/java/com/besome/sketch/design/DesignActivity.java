@@ -1706,6 +1706,12 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     return;
                 }
 
+                // Dart الحقيقي: قبل AAPT2 ليدخل kernel_blob.bin في أصول الـ APK
+                FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
+                if (canceled) {
+                    return;
+                }
+
                 onProgress("AAPT2 is running...", 8);
                 builder.compileResources();
                 if (canceled) {
@@ -1720,10 +1726,6 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
 
                 KotlinCompilerBridge.compileKotlinCodeIfPossible(this, builder);
                 if (canceled) return;
-                FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
-                if (canceled) {
-                    return;
-                }
 
                 onProgress("Java is compiling...", 13);
                 builder.compileJavaCode();

@@ -20,7 +20,7 @@ public class FlutterCompilerBridge {
 
     public static void compileFlutterCodeIfPossible(BuildProgressReceiver receiver, ProjectBuilder builder) throws Throwable {
         if (areAnyDartFilesPresent(builder)) {
-            receiver.onProgress("Flutter SDK: Validating and compiling Dart sources...", 12);
+            receiver.onProgress("Dart: تشغيل المترجم الحقيقي (Dart CFE)...", 11);
             new FlutterCompiler(builder).compile(receiver);
         }
     }

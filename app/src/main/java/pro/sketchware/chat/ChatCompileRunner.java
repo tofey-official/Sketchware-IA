@@ -108,12 +108,13 @@ final class ChatCompileRunner implements BuildProgressReceiver {
             builder.maybeExtractAapt2();
             onProgress("Extracting built-in libraries...", 3);
             BuiltInLibraries.extractCompileAssets(this);
+            // Dart الحقيقي: قبل AAPT2 ليدخل kernel_blob.bin في أصول الـ APK
+            FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
             onProgress("AAPT2 is running...", 8);
             builder.compileResources();
             onProgress("Generating view binding...", 11);
             builder.generateViewBinding();
             KotlinCompilerBridge.compileKotlinCodeIfPossible(this, builder);
-            FlutterCompilerBridge.compileFlutterCodeIfPossible(this, builder);
             onProgress("Java is compiling...", 13);
             builder.compileJavaCode();
             new StringfogHandler(scId).start(this, builder);
